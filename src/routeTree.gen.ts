@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppTeamRouteImport } from './routes/app.team'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
+import { Route as AppSeoAuditRouteImport } from './routes/app.seo-audit'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppRankingsRouteImport } from './routes/app.rankings'
 import { Route as AppPromptsRouteImport } from './routes/app.prompts'
@@ -56,6 +57,11 @@ const AppTeamRoute = AppTeamRouteImport.update({
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSeoAuditRoute = AppSeoAuditRouteImport.update({
+  id: '/seo-audit',
+  path: '/seo-audit',
   getParentRoute: () => AppRoute,
 } as any)
 const AppReportsRoute = AppReportsRouteImport.update({
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/app/prompts': typeof AppPromptsRoute
   '/app/rankings': typeof AppRankingsRoute
   '/app/reports': typeof AppReportsRoute
+  '/app/seo-audit': typeof AppSeoAuditRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app/': typeof AppIndexRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/app/prompts': typeof AppPromptsRoute
   '/app/rankings': typeof AppRankingsRoute
   '/app/reports': typeof AppReportsRoute
+  '/app/seo-audit': typeof AppSeoAuditRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app': typeof AppIndexRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/app/prompts': typeof AppPromptsRoute
   '/app/rankings': typeof AppRankingsRoute
   '/app/reports': typeof AppReportsRoute
+  '/app/seo-audit': typeof AppSeoAuditRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app/': typeof AppIndexRoute
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/app/prompts'
     | '/app/rankings'
     | '/app/reports'
+    | '/app/seo-audit'
     | '/app/settings'
     | '/app/team'
     | '/app/'
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/app/prompts'
     | '/app/rankings'
     | '/app/reports'
+    | '/app/seo-audit'
     | '/app/settings'
     | '/app/team'
     | '/app'
@@ -236,6 +247,7 @@ export interface FileRouteTypes {
     | '/app/prompts'
     | '/app/rankings'
     | '/app/reports'
+    | '/app/seo-audit'
     | '/app/settings'
     | '/app/team'
     | '/app/'
@@ -289,6 +301,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/app/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/seo-audit': {
+      id: '/app/seo-audit'
+      path: '/seo-audit'
+      fullPath: '/app/seo-audit'
+      preLoaderRoute: typeof AppSeoAuditRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/reports': {
@@ -391,6 +410,7 @@ interface AppRouteChildren {
   AppPromptsRoute: typeof AppPromptsRoute
   AppRankingsRoute: typeof AppRankingsRoute
   AppReportsRoute: typeof AppReportsRoute
+  AppSeoAuditRoute: typeof AppSeoAuditRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppTeamRoute: typeof AppTeamRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -409,6 +429,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPromptsRoute: AppPromptsRoute,
   AppRankingsRoute: AppRankingsRoute,
   AppReportsRoute: AppReportsRoute,
+  AppSeoAuditRoute: AppSeoAuditRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppTeamRoute: AppTeamRoute,
   AppIndexRoute: AppIndexRoute,

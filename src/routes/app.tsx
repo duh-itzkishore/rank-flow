@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import {
   LayoutDashboard, FolderOpen, MessageSquare, Bot, Trophy, AtSign,
   Target, BarChart3, FileText, Bell, Users, Plug, CreditCard, Settings,
-  Search, LogOut, Sparkles, ChevronRight,
+  Search, LogOut, Sparkles, ChevronRight, ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/app")({
 
 const mainNav = [
   { title: "Dashboard",   url: "/app/dashboard",     icon: LayoutDashboard },
+  { title: "SEO Audit",   url: "/app/seo-audit",     icon: ShieldCheck     },
   { title: "Projects",    url: "/app/projects",       icon: FolderOpen      },
   { title: "Prompts",     url: "/app/prompts",        icon: MessageSquare   },
   { title: "AI Models",   url: "/app/models",         icon: Bot             },

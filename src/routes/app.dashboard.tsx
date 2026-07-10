@@ -14,9 +14,19 @@ import {
   recentAlerts, weeklyGrowthData, recentResponses,
 } from "@/lib/mock-data";
 
+type DashboardSearch = {
+  website?: string;
+};
+
 export const Route = createFileRoute("/app/dashboard")({
+  validateSearch: (search: Record<string, unknown>): DashboardSearch => {
+    return {
+      website: search.website as string | undefined,
+    };
+  },
   component: Dashboard,
 });
+
 
 const MODEL_COLORS: Record<string, string> = {
   ChatGPT: "#10a37f", Gemini: "#4285f4", Claude: "#c85a2a", Perplexity: "#7c3aed",
@@ -34,6 +44,7 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 }
 
 function Dashboard() {
+  const { website } = Route.useSearch();
   const [projectsCount, setProjectsCount] = useState<number>(0);
   const [promptsCount, setPromptsCount] = useState<number>(0);
   const [promptsList, setPromptsList] = useState<any[]>([]);
@@ -86,7 +97,9 @@ function Dashboard() {
     <div className="mx-auto max-w-7xl space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-semibold text-white tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-white tracking-tight">
+          {website ? `Dashboard: ${website}` : "Dashboard"}
+        </h1>
         <p className="mt-1 text-sm text-white/40">Overview · Real database metrics</p>
       </div>
 

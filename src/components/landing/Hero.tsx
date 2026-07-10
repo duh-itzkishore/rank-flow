@@ -1,50 +1,25 @@
-import { useState, useEffect } from "react";
-import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { DashboardMockup, ScaledDashboard } from "./DashboardMockup";
-import { Navbar } from "./Navbar";
+import { ScanOverlay } from "./ScanOverlay";
 
 export function Hero() {
-  const [placeholder, setPlaceholder] = useState("");
-  const queries = [
-    "What makes content rank in AI search?",
-    "Best customer relationship management software",
-    "Top marketing tools for SaaS startups",
-    "Notion alternatives for engineering teams"
-  ];
+  const [url, setUrl] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    let queryIndex = 0;
-    let charIndex = 0;
-    let isDeleting = false;
-    let timer: NodeJS.Timeout;
+  const handleAnalyze = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!url.trim()) return;
+    setIsScanning(true);
+  };
 
-    const tick = () => {
-      const currentQuery = queries[queryIndex];
-      if (!isDeleting) {
-        setPlaceholder(currentQuery.substring(0, charIndex + 1));
-        charIndex++;
-        if (charIndex === currentQuery.length) {
-          isDeleting = true;
-          timer = setTimeout(tick, 2500); // pause at the end
-          return;
-        }
-      } else {
-        setPlaceholder(currentQuery.substring(0, charIndex - 1));
-        charIndex--;
-        if (charIndex === 0) {
-          isDeleting = false;
-          queryIndex = (queryIndex + 1) % queries.length;
-        }
-      }
+  const handleScanComplete = () => {
+    setIsScanning(false);
+    navigate({ to: "/app/dashboard", search: { website: url } as any });
+  };
 
-      const speed = isDeleting ? 25 : 50;
-      timer = setTimeout(tick, speed);
-    };
-
-    tick();
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <section
@@ -81,19 +56,22 @@ export function Hero() {
         </p>
 
         {/* Input Bar */}
-        <form className="animate-fade-up [animation-delay:250ms] mt-8 w-full max-w-xl">
+        <form onSubmit={handleAnalyze} className="animate-fade-up [animation-delay:250ms] mt-8 w-full max-w-xl">
           <div className="flex items-center gap-3 rounded-full bg-white/[0.04] backdrop-blur-lg border border-white/10 pl-5 pr-1.5 py-1.5 shadow-xl shadow-black/30 focus-within:border-indigo-500/50 transition-colors">
             <input
-              className="flex-1 bg-transparent text-sm sm:text-base text-white placeholder-white/30 outline-none py-2"
-              placeholder={placeholder}
-              readOnly
+              type="url"
+              className="flex-1 bg-transparent text-sm sm:text-base text-white placeholder-white/40 outline-none py-2"
+              placeholder="Enter your website URL (e.g., https://mybrand.com)"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              required
             />
             <button
               type="submit"
-              className="w-10 h-10 rounded-full bg-indigo-600 text-white grid place-items-center hover:bg-indigo-500 hover:scale-105 active:scale-95 transition-all shrink-0"
-              aria-label="Submit"
+              className="w-auto px-5 h-10 rounded-full bg-indigo-600 text-white font-semibold flex items-center justify-center gap-2 hover:bg-indigo-500 hover:scale-[1.02] active:scale-95 transition-all shrink-0"
+              aria-label="Analyze Website"
             >
-              <ArrowRight className="w-4.5 h-4.5" />
+              Analyze Website <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </form>
@@ -131,6 +109,8 @@ export function Hero() {
 
       {/* Modern transition gradient overlay to light content */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent pointer-events-none z-10" />
+      
+      {isScanning && <ScanOverlay url={url} onComplete={handleScanComplete} />}
     </section>
   );
 }
