@@ -74,6 +74,50 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_runs: {
+        Row: {
+          id: string
+          prompt_id: string
+          model: string
+          response_text: string
+          is_mentioned: boolean
+          rank: number | null
+          citations: Json
+          recommendations: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          prompt_id: string
+          model: string
+          response_text: string
+          is_mentioned?: boolean
+          rank?: number | null
+          citations?: Json
+          recommendations?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          prompt_id?: string
+          model?: string
+          response_text?: string
+          is_mentioned?: boolean
+          rank?: number | null
+          citations?: Json
+          recommendations?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_runs_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       prompts: {
         Row: {
           created_at: string

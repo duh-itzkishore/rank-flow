@@ -29,6 +29,7 @@ import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppAlertsRouteImport } from './routes/app.alerts'
 import { Route as ApiSeoAuditRouteImport } from './routes/api.seo-audit'
+import { Route as ApiPromptAuditRouteImport } from './routes/api.prompt-audit'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -130,11 +131,17 @@ const ApiSeoAuditRoute = ApiSeoAuditRouteImport.update({
   path: '/api/seo-audit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPromptAuditRoute = ApiPromptAuditRouteImport.update({
+  id: '/api/prompt-audit',
+  path: '/api/prompt-audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -179,6 +187,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
+    | '/api/prompt-audit'
     | '/api/seo-audit'
     | '/app/alerts'
     | '/app/analytics'
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/api/prompt-audit'
     | '/api/seo-audit'
     | '/app/alerts'
     | '/app/analytics'
@@ -246,6 +257,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
+    | '/api/prompt-audit'
     | '/api/seo-audit'
     | '/app/alerts'
     | '/app/analytics'
@@ -269,6 +281,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPromptAuditRoute: typeof ApiPromptAuditRoute
   ApiSeoAuditRoute: typeof ApiSeoAuditRoute
 }
 
@@ -414,6 +427,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSeoAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/prompt-audit': {
+      id: '/api/prompt-audit'
+      path: '/api/prompt-audit'
+      fullPath: '/api/prompt-audit'
+      preLoaderRoute: typeof ApiPromptAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -461,6 +481,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPromptAuditRoute: ApiPromptAuditRoute,
   ApiSeoAuditRoute: ApiSeoAuditRoute,
 }
 export const routeTree = rootRouteImport
