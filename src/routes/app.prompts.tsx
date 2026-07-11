@@ -19,6 +19,7 @@ function Prompts() {
   const [text, setText] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [status, setStatus] = useState("active");
+  const [parentPromptId, setParentPromptId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -44,11 +45,12 @@ function Prompts() {
 
     try {
       setSubmitting(true);
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("prompts")
         .insert({
           text: text.trim(),
           project_id: selectedProjectId,
+          parent_prompt_id: parentPromptId,
           status,
           user_id: userId,
         });
@@ -58,6 +60,7 @@ function Prompts() {
       toast.success("Prompt tracked successfully!");
       setIsModalOpen(false);
       setText("");
+      setParentPromptId(null);
       fetchUserAndData(); // Refresh list
     } catch (err: any) {
       console.error("Error creating prompt:", err);
@@ -138,6 +141,7 @@ function Prompts() {
             text,
             status,
             project_id,
+            parent_prompt_id,
             created_at,
             projects (
               name
@@ -253,13 +257,26 @@ function Prompts() {
 
                 return (
                   <tr key={p.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-white/80">
-                      <button
-                        onClick={() => loadPromptRuns(p.id, p.text)}
-                        className="text-left hover:text-indigo-400 font-medium transition-colors text-white"
-                      >
-                        {p.text}
-                      </button>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-white/90">
+                        {p.parent_prompt_id ? (
+                          <div className="flex items-center gap-1.5 text-indigo-400">
+                            <span className="text-white/30 text-xs">↳</span> {p.text}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => loadPromptRuns(p.id, p.text)}
+                            className="text-left hover:text-indigo-400 font-medium transition-colors text-white cursor-pointer"
+                          >
+                            {p.text}
+                          </button>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-white/30 mt-1 flex items-center gap-2">
+                        {p.parent_prompt_id && (
+                          <span className="bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded font-semibold text-[9px] uppercase tracking-wider">Multi-Turn Follow-up</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-indigo-400 font-semibold">{projectName}</td>
                     <td className="px-6 py-4 text-sm text-white/50">{totalRuns} engines audited</td>
@@ -444,6 +461,21 @@ function Prompts() {
                   className="w-full rounded-lg bg-white/[0.04] border border-white/5 px-3.5 py-2 text-sm text-white outline-none focus:border-indigo-500/40 transition-colors"
                   required
                 />
+              </div>
+              <div>
+                <label className="text-[10px] text-white/35 uppercase tracking-wider font-semibold block mb-1.5">Parent Prompt (Multi-Turn Journey)</label>
+                <select
+                  value={parentPromptId || ""}
+                  onChange={(e) => setParentPromptId(e.target.value || null)}
+                  className="w-full rounded-lg bg-white/[0.04] border border-white/5 px-3.5 py-2.5 text-sm text-white outline-none focus:border-indigo-500/40 transition-colors"
+                >
+                  <option value="" className="bg-[#1e1e21] text-white">None (Start new conversation)</option>
+                  {prompts.filter(p => !p.parent_prompt_id).map((p) => (
+                    <option key={p.id} value={p.id} className="bg-[#1e1e21] text-white">
+                      {p.text}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="text-[10px] text-white/35 uppercase tracking-wider font-semibold block mb-1.5">Status</label>

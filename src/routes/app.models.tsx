@@ -108,7 +108,7 @@ function AIModels() {
         const mentioned = modelRuns.filter((r) => r.is_mentioned);
         const ranked = mentioned.filter((r) => r.rank !== null);
         const avgRank = ranked.length > 0
-          ? parseFloat((ranked.reduce((a, r) => a + r.rank, 0) / ranked.length).toFixed(1))
+          ? parseFloat((ranked.reduce((a, r) => a + (r.rank || 0), 0) / ranked.length).toFixed(1))
           : null;
         const citationRate = modelRuns.length > 0
           ? Math.round((mentioned.length / modelRuns.length) * 100)

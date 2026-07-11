@@ -118,8 +118,19 @@ export const Route = createFileRoute("/api/prompt-audit")({
               ];
             }
 
+            // Simulate multimodal media embeds (images/videos) randomly
+            const media_embeds: any[] = [];
+            if (isMentioned && Math.random() > 0.6) {
+              if (model === "perplexity" || model === "gemini") {
+                media_embeds.push({ type: "video", platform: "youtube", title: `${brandName} Overview` });
+              }
+              if (model === "chatgpt") {
+                media_embeds.push({ type: "image", source: brandWebsite || "website", alt: `${brandName} dashboard screenshot` });
+              }
+            }
+
             // Insert run result
-            const { data: runData, error: runErr } = await supabase
+            const { data: runData, error: runErr } = await (supabase as any)
               .from("prompt_runs")
               .insert({
                 prompt_id: promptId,
@@ -129,6 +140,7 @@ export const Route = createFileRoute("/api/prompt-audit")({
                 rank,
                 citations,
                 recommendations,
+                media_embeds,
               })
               .select()
               .single();

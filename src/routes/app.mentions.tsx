@@ -74,6 +74,7 @@ type MentionItem = {
   response_text: string;
   is_hallucination: boolean;
   citations: any[];
+  media_embeds: any[];
   created_at: string;
 };
 
@@ -109,6 +110,7 @@ function Mentions() {
           rank,
           response_text,
           citations,
+          media_embeds,
           created_at,
           prompts (
             text,
@@ -141,6 +143,7 @@ function Mentions() {
           response_text: run.response_text || "",
           is_hallucination: isHallucination,
           citations: run.citations || [],
+          media_embeds: run.media_embeds || [],
           created_at: run.created_at,
         };
       });
@@ -293,6 +296,12 @@ function Mentions() {
                             <AlertTriangle className="w-2.5 h-2.5" /> hallucination
                           </span>
                         )}
+                        {m.media_embeds.length > 0 && (
+                          <span className="ml-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] bg-white/5 text-white/50 border border-white/10" title="Multimodal Widgets Detected">
+                            {m.media_embeds.some((e: any) => e.type === "video") && "🎥"}
+                            {m.media_embeds.some((e: any) => e.type === "image") && "🖼️"}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-4 text-center">
                         {m.is_mentioned ? (
@@ -353,6 +362,22 @@ function Mentions() {
                                 <p className="text-xs text-amber-300 leading-relaxed">
                                   <strong>Potential Hallucination Detected</strong> — This response may contain inaccurate claims about your brand. Consider publishing corrective content with schema markup to counter this narrative on the next AI crawl.
                                 </p>
+                              </div>
+                            )}
+                            {m.media_embeds.length > 0 && (
+                              <div>
+                                <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold mb-1.5">
+                                  Multimodal Embeds
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {m.media_embeds.map((e: any, i: number) => (
+                                    <div key={i} className="inline-flex items-center gap-1.5 text-[11px] text-white/70 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
+                                      <span>{e.type === "video" ? "🎥 Video" : "🖼️ Image"}</span>
+                                      <span className="text-white/40">·</span>
+                                      <span>{e.title || e.alt || e.source}</span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>

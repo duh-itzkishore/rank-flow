@@ -30,6 +30,7 @@ import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppAlertsRouteImport } from './routes/app.alerts'
 import { Route as ApiSeoAuditRouteImport } from './routes/api.seo-audit'
 import { Route as ApiPromptAuditRouteImport } from './routes/api.prompt-audit'
+import { Route as ApiLlmsTxtProjectIdRouteImport } from './routes/api.llms-txt.$projectId'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -136,6 +137,11 @@ const ApiPromptAuditRoute = ApiPromptAuditRouteImport.update({
   path: '/api/prompt-audit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLlmsTxtProjectIdRoute = ApiLlmsTxtProjectIdRouteImport.update({
+  id: '/api/llms-txt/$projectId',
+  path: '/api/llms-txt/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app/': typeof AppIndexRoute
+  '/api/llms-txt/$projectId': typeof ApiLlmsTxtProjectIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app': typeof AppIndexRoute
+  '/api/llms-txt/$projectId': typeof ApiLlmsTxtProjectIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app/': typeof AppIndexRoute
+  '/api/llms-txt/$projectId': typeof ApiLlmsTxtProjectIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/team'
     | '/app/'
+    | '/api/llms-txt/$projectId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/team'
     | '/app'
+    | '/api/llms-txt/$projectId'
   id:
     | '__root__'
     | '/'
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/team'
     | '/app/'
+    | '/api/llms-txt/$projectId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -283,6 +295,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ApiPromptAuditRoute: typeof ApiPromptAuditRoute
   ApiSeoAuditRoute: typeof ApiSeoAuditRoute
+  ApiLlmsTxtProjectIdRoute: typeof ApiLlmsTxtProjectIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -434,6 +447,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPromptAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/llms-txt/$projectId': {
+      id: '/api/llms-txt/$projectId'
+      path: '/api/llms-txt/$projectId'
+      fullPath: '/api/llms-txt/$projectId'
+      preLoaderRoute: typeof ApiLlmsTxtProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -483,6 +503,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ApiPromptAuditRoute: ApiPromptAuditRoute,
   ApiSeoAuditRoute: ApiSeoAuditRoute,
+  ApiLlmsTxtProjectIdRoute: ApiLlmsTxtProjectIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
