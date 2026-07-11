@@ -1,6 +1,6 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   LayoutDashboard, FolderOpen, MessageSquare, Bot, Trophy, AtSign,
   Target, BarChart3, FileText, Bell, Users, Plug, CreditCard, Settings,
@@ -25,7 +25,6 @@ const mainNav = [
   { title: "Competitors", url: "/app/competitors",     icon: Target          },
   { title: "Analytics",   url: "/app/analytics",       icon: BarChart3       },
   { title: "Reports",     url: "/app/reports",          icon: FileText        },
-  { title: "Alerts",      url: "/app/alerts",           icon: Bell            },
 ];
 
 const secondaryNav = [
@@ -42,6 +41,15 @@ function AppLayout() {
   const [user, setUser] = useState<{ email?: string; name?: string } | null>(null);
   const [checked, setChecked] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [unreadAlerts, setUnreadAlerts] = useState(0);
+
+  const fetchUnreadAlerts = useCallback(async () => {
+    const { count } = await (supabase as any)
+      .from("alerts")
+      .select("*", { count: "exact", head: true })
+      .eq("is_read", false);
+    setUnreadAlerts(count || 0);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -54,6 +62,7 @@ function AppLayout() {
           email: data.user.email,
           name: (data.user.user_metadata?.full_name as string) || data.user.email?.split("@")[0],
         });
+        fetchUnreadAlerts();
       }
       setChecked(true);
     });
@@ -65,10 +74,13 @@ function AppLayout() {
           email: session.user.email,
           name: (session.user.user_metadata?.full_name as string) || session.user.email?.split("@")[0],
         });
+        fetchUnreadAlerts();
       }
     });
-    return () => { mounted = false; sub.subscription.unsubscribe(); };
-  }, [navigate]);
+    // Refresh unread count every 60 seconds
+    const interval = setInterval(fetchUnreadAlerts, 60000);
+    return () => { mounted = false; sub.subscription.unsubscribe(); clearInterval(interval); };
+  }, [navigate, fetchUnreadAlerts]);
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
@@ -116,18 +128,32 @@ function AppLayout() {
         <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto mockup-scroll">
           {mainNav.map((item) => {
             const active = pathname === item.url || pathname.startsWith(item.url + "/");
+            const isAlerts = item.url === "/app/alerts";
             return (
               <Link
                 key={item.url}
                 to={item.url}
+                onClick={isAlerts ? fetchUnreadAlerts : undefined}
                 className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
                   active
                     ? "bg-indigo-600/15 text-indigo-400"
                     : "text-white/50 hover:bg-white/[0.04] hover:text-white/80"
                 }`}
               >
-                <item.icon className="w-4 h-4 shrink-0" />
+                <div className="relative shrink-0">
+                  <item.icon className="w-4 h-4" />
+                  {isAlerts && unreadAlerts > 0 && (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 text-[8px] font-bold text-white flex items-center justify-center">
+                      {unreadAlerts > 9 ? "9+" : unreadAlerts}
+                    </span>
+                  )}
+                </div>
                 {!collapsed && <span>{item.title}</span>}
+                {!collapsed && isAlerts && unreadAlerts > 0 && (
+                  <span className="ml-auto w-4 h-4 rounded-full bg-red-500/20 text-red-400 text-[9px] font-bold flex items-center justify-center">
+                    {unreadAlerts > 9 ? "9+" : unreadAlerts}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -188,10 +214,16 @@ function AppLayout() {
             />
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <button className="relative rounded-lg p-2 text-white/40 hover:bg-white/[0.04] hover:text-white/70 transition-colors">
+            <Link
+              to="/app/alerts"
+              onClick={fetchUnreadAlerts}
+              className="relative rounded-lg p-2 text-white/40 hover:bg-white/[0.04] hover:text-white/70 transition-colors"
+            >
               <Bell className="h-4 w-4" />
-              <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-indigo-500" />
-            </button>
+              {unreadAlerts > 0 && (
+                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
+              )}
+            </Link>
           </div>
         </header>
 

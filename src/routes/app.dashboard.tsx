@@ -50,6 +50,11 @@ function Dashboard() {
   const [promptsList, setPromptsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Real DB KPI metrics
+  const [totalMentions, setTotalMentions] = useState<number>(0);
+  const [avgRank, setAvgRank] = useState<string>("--");
+  const [aiVisibility, setAiVisibility] = useState<string>("0.0");
+
   useEffect(() => {
     fetchDatabaseStats();
   }, []);
@@ -76,6 +81,25 @@ function Dashboard() {
         if (promptsErr) throw promptsErr;
         setPromptsCount(pCount || 0);
         setPromptsList(promptsData || []);
+
+        // Query prompt runs for dashboard KPIs
+        const { data: runsData } = await supabase
+          .from("prompt_runs")
+          .select("is_mentioned, rank");
+
+        if (runsData && runsData.length > 0) {
+          const mentionedRuns = runsData.filter((r: any) => r.is_mentioned);
+          setTotalMentions(mentionedRuns.length);
+
+          const visibilityRate = ((mentionedRuns.length / runsData.length) * 100).toFixed(1);
+          setAiVisibility(visibilityRate);
+
+          const rankedRuns = mentionedRuns.filter((r: any) => r.rank !== null);
+          if (rankedRuns.length > 0) {
+            const sum = rankedRuns.reduce((acc: number, curr: any) => acc + curr.rank, 0);
+            setAvgRank(`#${(sum / rankedRuns.length).toFixed(1)}`);
+          }
+        }
       }
     } catch (err) {
       console.error("Error loading dashboard data from database:", err);
@@ -113,9 +137,9 @@ function Dashboard() {
           {/* ── Row 1 · KPI cards ────────────────────── */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {[
-              { label: "AI Visibility",     value: projectsCount > 0 ? "84.2" : "0.0",  icon: Eye,            change: projectsCount > 0 ? "+12.4%" : "", up: true },
-              { label: "Avg Brand Rank",    value: projectsCount > 0 ? "#2.1" : "--",   icon: Trophy,         change: projectsCount > 0 ? "+0.8" : "",   up: true },
-              { label: "Total Mentions",    value: projectsCount > 0 ? "1,842" : "0",   icon: AtSign,         change: projectsCount > 0 ? "+8.7%" : "",  up: true },
+              { label: "AI Visibility",     value: `${aiVisibility}%`,                   icon: Eye,            change: projectsCount > 0 ? "+12.4%" : "", up: true },
+              { label: "Avg Brand Rank",    value: avgRank,                              icon: Trophy,         change: projectsCount > 0 ? "+0.8" : "",   up: true },
+              { label: "Total Mentions",    value: String(totalMentions),                icon: AtSign,         change: projectsCount > 0 ? "+8.7%" : "",  up: true },
               { label: "Total Prompts",     value: String(promptsCount),                 icon: MessageSquare,  change: "",                                 up: true },
               { label: "Projects Tracked",  value: String(projectsCount),                icon: FolderKanban,   change: "",                                 up: true },
             ].map((kpi) => (

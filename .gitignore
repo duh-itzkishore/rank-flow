@@ -32,3 +32,5 @@ dist-ssr
 *.sw?
 .env
 
+Log.md
+.agents/AGENTS.md
