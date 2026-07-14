@@ -1,23 +1,17 @@
 import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { DashboardMockup, ScaledDashboard } from "./DashboardMockup";
-import { ScanOverlay } from "./ScanOverlay";
+import { AnalysisOverviewCard } from "./AnalysisOverviewCard";
 
 export function Hero() {
   const [url, setUrl] = useState("");
-  const [isScanning, setIsScanning] = useState(false);
-  const navigate = useNavigate();
+  const [analyzedUrl, setAnalyzedUrl] = useState<string | null>(null);
 
   const handleAnalyze = (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
-    setIsScanning(true);
-  };
-
-  const handleScanComplete = () => {
-    setIsScanning(false);
-    navigate({ to: "/app/dashboard", search: { website: url } as any });
+    setAnalyzedUrl(url);
   };
 
 
@@ -109,8 +103,10 @@ export function Hero() {
 
       {/* Modern transition gradient overlay to light content */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent pointer-events-none z-10" />
-      
-      {isScanning && <ScanOverlay url={url} onComplete={handleScanComplete} />}
+
+      {analyzedUrl && (
+        <AnalysisOverviewCard url={analyzedUrl} onClose={() => setAnalyzedUrl(null)} />
+      )}
     </section>
   );
 }

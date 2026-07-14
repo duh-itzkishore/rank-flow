@@ -5,12 +5,22 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/landing/Logo";
 
+type AuthSearch = {
+  website?: string;
+};
+
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>): AuthSearch => {
+    return {
+      website: search.website as string | undefined,
+    };
+  },
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { website } = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
@@ -29,7 +39,7 @@ function AuthPage() {
       return;
     }
     toast.success("Welcome back");
-    navigate({ to: "/app/dashboard" });
+    navigate({ to: "/app/dashboard", search: website ? { website } : undefined });
   };
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -50,7 +60,7 @@ function AuthPage() {
       return;
     }
     toast.success("Account created — check your email if confirmation is required.");
-    navigate({ to: "/app/dashboard" });
+    navigate({ to: "/app/dashboard", search: website ? { website } : undefined });
   };
 
   return (

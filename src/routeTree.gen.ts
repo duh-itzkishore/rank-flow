@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppTeamRouteImport } from './routes/app.team'
@@ -40,6 +41,11 @@ const AuthRoute = AuthRouteImport.update({
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalysisRoute = AnalysisRouteImport.update({
+  id: '/analysis',
+  path: '/analysis',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -145,6 +151,7 @@ const ApiLlmsTxtProjectIdRoute = ApiLlmsTxtProjectIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
   '/auth': typeof AuthRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
@@ -193,6 +201,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/analysis'
     | '/app'
     | '/auth'
     | '/api/prompt-audit'
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/analysis'
     | '/auth'
     | '/api/prompt-audit'
     | '/api/seo-audit'
@@ -266,6 +277,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/analysis'
     | '/app'
     | '/auth'
     | '/api/prompt-audit'
@@ -291,6 +303,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalysisRoute: typeof AnalysisRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPromptAuditRoute: typeof ApiPromptAuditRoute
@@ -312,6 +325,13 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analysis': {
+      id: '/analysis'
+      path: '/analysis'
+      fullPath: '/analysis'
+      preLoaderRoute: typeof AnalysisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -499,6 +519,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalysisRoute: AnalysisRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPromptAuditRoute: ApiPromptAuditRoute,
