@@ -30,6 +30,7 @@ import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppAlertsRouteImport } from './routes/app.alerts'
 import { Route as ApiSeoAuditRouteImport } from './routes/api.seo-audit'
+import { Route as ApiRunScheduledPromptsRouteImport } from './routes/api.run-scheduled-prompts'
 import { Route as ApiPromptAuditRouteImport } from './routes/api.prompt-audit'
 import { Route as ApiLlmsTxtProjectIdRouteImport } from './routes/api.llms-txt.$projectId'
 
@@ -138,6 +139,11 @@ const ApiSeoAuditRoute = ApiSeoAuditRouteImport.update({
   path: '/api/seo-audit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRunScheduledPromptsRoute = ApiRunScheduledPromptsRouteImport.update({
+  id: '/api/run-scheduled-prompts',
+  path: '/api/run-scheduled-prompts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPromptAuditRoute = ApiPromptAuditRouteImport.update({
   id: '/api/prompt-audit',
   path: '/api/prompt-audit',
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
+  '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/analysis': typeof AnalysisRoute
   '/auth': typeof AuthRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
+  '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
+  '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -232,6 +241,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/auth'
     | '/api/prompt-audit'
+    | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
     | '/app/alerts'
     | '/app/analytics'
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
     | '/analysis'
     | '/auth'
     | '/api/prompt-audit'
+    | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
     | '/app/alerts'
     | '/app/analytics'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/auth'
     | '/api/prompt-audit'
+    | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
     | '/app/alerts'
     | '/app/analytics'
@@ -307,6 +319,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPromptAuditRoute: typeof ApiPromptAuditRoute
+  ApiRunScheduledPromptsRoute: typeof ApiRunScheduledPromptsRoute
   ApiSeoAuditRoute: typeof ApiSeoAuditRoute
   ApiLlmsTxtProjectIdRoute: typeof ApiLlmsTxtProjectIdRoute
 }
@@ -460,6 +473,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSeoAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/run-scheduled-prompts': {
+      id: '/api/run-scheduled-prompts'
+      path: '/api/run-scheduled-prompts'
+      fullPath: '/api/run-scheduled-prompts'
+      preLoaderRoute: typeof ApiRunScheduledPromptsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/prompt-audit': {
       id: '/api/prompt-audit'
       path: '/api/prompt-audit'
@@ -523,6 +543,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPromptAuditRoute: ApiPromptAuditRoute,
+  ApiRunScheduledPromptsRoute: ApiRunScheduledPromptsRoute,
   ApiSeoAuditRoute: ApiSeoAuditRoute,
   ApiLlmsTxtProjectIdRoute: ApiLlmsTxtProjectIdRoute,
 }

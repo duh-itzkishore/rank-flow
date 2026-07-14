@@ -20,6 +20,7 @@ function Prompts() {
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [status, setStatus] = useState("active");
   const [parentPromptId, setParentPromptId] = useState<string | null>(null);
+  const [frequency, setFrequency] = useState("manual");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -45,7 +46,7 @@ function Prompts() {
 
     try {
       setSubmitting(true);
-      const { error } = await (supabase as any)
+      const { data: newPrompt, error } = await (supabase as any)
         .from("prompts")
         .insert({
           text: text.trim(),
@@ -53,14 +54,31 @@ function Prompts() {
           parent_prompt_id: parentPromptId,
           status,
           user_id: userId,
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      if (frequency !== "manual" && newPrompt) {
+        const intervalDays = frequency === "daily" ? 1 : 7;
+        const nextRun = new Date(Date.now() + intervalDays * 86400 * 1000).toISOString();
+
+        await (supabase as any)
+          .from("prompt_schedules")
+          .insert({
+            prompt_id: newPrompt.id,
+            user_id: userId,
+            frequency,
+            next_run_at: nextRun
+          });
+      }
 
       toast.success("Prompt tracked successfully!");
       setIsModalOpen(false);
       setText("");
       setParentPromptId(null);
+      setFrequency("manual");
       fetchUserAndData(); // Refresh list
     } catch (err: any) {
       console.error("Error creating prompt:", err);
@@ -475,6 +493,18 @@ function Prompts() {
                       {p.text}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-white/35 uppercase tracking-wider font-semibold block mb-1.5">Audit Schedule</label>
+                <select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
+                  className="w-full rounded-lg bg-white/[0.04] border border-white/5 px-3.5 py-2.5 text-sm text-white outline-none focus:border-indigo-500/40 transition-colors"
+                >
+                  <option value="manual" className="bg-[#1e1e21] text-white">Manual Run Only</option>
+                  <option value="daily" className="bg-[#1e1e21] text-white">Daily Auto Run</option>
+                  <option value="weekly" className="bg-[#1e1e21] text-white">Weekly Auto Run</option>
                 </select>
               </div>
               <div>

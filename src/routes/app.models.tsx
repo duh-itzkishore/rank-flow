@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Bot, TrendingUp, TrendingDown, Info } from "lucide-react";
+import { Loader2, Bot, TrendingUp, TrendingDown, Info, Clock, DollarSign, Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip } from "recharts";
@@ -52,7 +52,7 @@ const MODELS = [
     winTips: [
       "Publish detailed case studies and white papers",
       "Frame your product around clear ethical and safety benefits",
-      'Use semantic keywords like "enterprise-grade", "compliance", "research-backed"',
+      "Use semantic keywords like 'enterprise-grade', 'compliance'",
     ],
   },
   {
@@ -77,6 +77,9 @@ type ModelStats = {
   mentioned: number;
   citationRate: number;
   avgRank: number | null;
+  avgLatency: number;
+  avgTokens: number;
+  avgSentiment: number;
   trend: "up" | "down" | "flat";
 };
 
@@ -84,6 +87,7 @@ function AIModels() {
   const [stats, setStats] = useState<Record<string, ModelStats>>({});
   const [loading, setLoading] = useState(true);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [recentRuns, setRecentRuns] = useState<any[]>([]);
 
   useEffect(() => {
     fetchStats();
@@ -94,36 +98,59 @@ function AIModels() {
       setLoading(true);
       const since = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
 
-      const { data, error } = await supabase
+      // Query prompt runs with the V2 metrics columns
+      const { data, error } = await (supabase as any)
         .from("prompt_runs")
-        .select("model, is_mentioned, rank, created_at")
+        .select("model, is_mentioned, rank, created_at, response_text, sentiment_score, latency_ms, tokens_used")
         .gte("created_at", since);
 
       if (error) throw error;
       const runs = data || [];
+      setRecentRuns(runs.slice(0, 15)); // Get recent runs for log section
 
       const result: Record<string, ModelStats> = {};
       for (const model of MODELS.map((m) => m.key)) {
-        const modelRuns = runs.filter((r) => r.model === model);
-        const mentioned = modelRuns.filter((r) => r.is_mentioned);
-        const ranked = mentioned.filter((r) => r.rank !== null);
+        const modelRuns = runs.filter((r: any) => r.model === model);
+        const mentioned = modelRuns.filter((r: any) => r.is_mentioned);
+        const ranked = mentioned.filter((r: any) => r.rank !== null);
+        
         const avgRank = ranked.length > 0
-          ? parseFloat((ranked.reduce((a, r) => a + (r.rank || 0), 0) / ranked.length).toFixed(1))
+          ? parseFloat((ranked.reduce((a: any, r: any) => a + (r.rank || 0), 0) / ranked.length).toFixed(1))
           : null;
+          
         const citationRate = modelRuns.length > 0
           ? Math.round((mentioned.length / modelRuns.length) * 100)
           : 0;
 
-        // Trend: compare first half vs second half
+        // Calculate averages from V2 columns
+        const totalLatency = modelRuns.reduce((a: any, r: any) => a + ((r as any).latency_ms || 0), 0);
+        const avgLatency = modelRuns.length > 0 ? Math.round(totalLatency / modelRuns.length) : 0;
+
+        const totalTokens = modelRuns.reduce((a: any, r: any) => a + ((r as any).tokens_used || 0), 0);
+        const avgTokens = modelRuns.length > 0 ? Math.round(totalTokens / modelRuns.length) : 0;
+
+        const totalSentiment = modelRuns.reduce((a: any, r: any) => a + ((r as any).sentiment_score || 0), 0);
+        const avgSentiment = modelRuns.length > 0 ? parseFloat((totalSentiment / modelRuns.length).toFixed(2)) : 0;
+
+        // Trend calculation
         let trend: "up" | "down" | "flat" = "flat";
         if (modelRuns.length >= 4) {
           const half = Math.floor(modelRuns.length / 2);
-          const firstRate = modelRuns.slice(0, half).filter((r) => r.is_mentioned).length / half;
-          const secondRate = modelRuns.slice(half).filter((r) => r.is_mentioned).length / (modelRuns.length - half);
+          const firstRate = modelRuns.slice(0, half).filter((r: any) => r.is_mentioned).length / half;
+          const secondRate = modelRuns.slice(half).filter((r: any) => r.is_mentioned).length / (modelRuns.length - half);
           trend = secondRate > firstRate ? "up" : secondRate < firstRate ? "down" : "flat";
         }
 
-        result[model] = { total: modelRuns.length, mentioned: mentioned.length, citationRate, avgRank, trend };
+        result[model] = { 
+          total: modelRuns.length, 
+          mentioned: mentioned.length, 
+          citationRate, 
+          avgRank, 
+          avgLatency, 
+          avgTokens, 
+          avgSentiment,
+          trend 
+        };
       }
 
       setStats(result);
@@ -134,21 +161,20 @@ function AIModels() {
     }
   };
 
-  // Radar chart data for the selected model
   const radarData = [
     { subject: "Citation Rate", A: stats[selectedModel || "chatgpt"]?.citationRate || 0 },
     { subject: "Avg Rank", A: selectedModel && stats[selectedModel]?.avgRank ? Math.max(0, 100 - (stats[selectedModel].avgRank! - 1) * 20) : 0 },
-    { subject: "Coverage", A: stats[selectedModel || "chatgpt"]?.total ? Math.min(100, (stats[selectedModel || "chatgpt"].total / 10) * 100) : 0 },
-    { subject: "Trend", A: stats[selectedModel || "chatgpt"]?.trend === "up" ? 80 : stats[selectedModel || "chatgpt"]?.trend === "down" ? 20 : 50 },
+    { subject: "Sentiment", A: selectedModel ? Math.round((stats[selectedModel].avgSentiment + 1) * 50) : 50 }, // Map -1..1 to 0..100
+    { subject: "Response Speed", A: selectedModel ? Math.max(20, Math.min(100, 100 - (stats[selectedModel].avgLatency / 100))) : 50 },
     { subject: "Mentions", A: stats[selectedModel || "chatgpt"]?.mentioned ? Math.min(100, (stats[selectedModel || "chatgpt"].mentioned / 5) * 100) : 0 },
   ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 pb-20">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-white tracking-tight">AI Models</h1>
-        <p className="mt-1 text-sm text-white/40">Per-model citation intelligence, win strategies & performance · last 30 days</p>
+        <p className="mt-1 text-sm text-white/40">Per-model citation intelligence, latency, token costs, and sentiment metrics · last 30 days</p>
       </div>
 
       {loading ? (
@@ -161,7 +187,7 @@ function AIModels() {
           {/* Model Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {MODELS.map((m) => {
-              const s = stats[m.key] || { total: 0, mentioned: 0, citationRate: 0, avgRank: null, trend: "flat" };
+              const s = stats[m.key] || { total: 0, mentioned: 0, citationRate: 0, avgRank: null, avgLatency: 0, avgTokens: 0, avgSentiment: 0, trend: "flat" };
               const isSelected = selectedModel === m.key;
               return (
                 <button
@@ -189,22 +215,19 @@ function AIModels() {
                     <div className="h-1 rounded-full bg-black/30 overflow-hidden">
                       <div className="h-full rounded-full transition-all duration-700" style={{ width: `${s.citationRate}%`, background: m.color }} />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-white/40">Avg Rank</span>
-                      <span className="text-xs font-semibold text-white">{s.avgRank ? `#${s.avgRank}` : "N/A"}</span>
+                    <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-white/5">
+                      <div>
+                        <div className="text-[9px] text-white/35">Avg Speed</div>
+                        <div className="text-xs font-semibold text-white flex items-center gap-1 mt-0.5"><Clock className="w-3 h-3 text-indigo-400" />{s.avgLatency}ms</div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-white/35">Avg Tokens</div>
+                        <div className="text-xs font-semibold text-white flex items-center gap-1 mt-0.5"><DollarSign className="w-3 h-3 text-emerald-400" />{s.avgTokens}</div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-white/40">Total Scans</span>
-                      <span className="text-xs text-white/60">{s.total}</span>
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      {s.trend === "up" ? (
-                        <span className="text-[10px] text-emerald-400 flex items-center gap-0.5"><TrendingUp className="w-3 h-3" /> Rising</span>
-                      ) : s.trend === "down" ? (
-                        <span className="text-[10px] text-red-400 flex items-center gap-0.5"><TrendingDown className="w-3 h-3" /> Falling</span>
-                      ) : (
-                        <span className="text-[10px] text-white/30">→ Stable</span>
-                      )}
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-[10px] text-white/40">Avg Sentiment</span>
+                      <span className="text-xs font-semibold text-white flex items-center gap-1"><Heart className="w-3 h-3 text-rose-500" />{s.avgSentiment}</span>
                     </div>
                   </div>
                 </button>
@@ -215,7 +238,7 @@ function AIModels() {
           {/* Selected Model Deep Dive */}
           {selectedModel && (() => {
             const model = MODELS.find((m) => m.key === selectedModel)!;
-            const s = stats[selectedModel] || { total: 0, mentioned: 0, citationRate: 0, avgRank: null, trend: "flat" };
+            const s = stats[selectedModel] || { total: 0, mentioned: 0, citationRate: 0, avgRank: null, avgLatency: 0, avgTokens: 0, avgSentiment: 0, trend: "flat" };
             return (
               <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-6 space-y-5">
                 <div className="flex items-center gap-3 border-b border-white/5 pb-4">
@@ -260,26 +283,53 @@ function AIModels() {
                         </div>
                       ))}
                     </div>
-
-                    <h3 className="text-sm font-semibold text-white mt-4 mb-2">What {model.label} Values</h3>
-                    <div className="flex flex-wrap gap-1.5">
-                      {model.strengths.map((s, i) => (
-                        <span key={i} className={`text-[10px] px-2 py-1 rounded-full font-medium ${model.bg} border ${model.border}`} style={{ color: model.color }}>
-                          {s}
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 </div>
               </div>
             );
           })()}
 
-          {!selectedModel && (
-            <div className="rounded-xl border border-dashed border-white/10 p-6 text-center">
-              <p className="text-sm text-white/30">Click any model card above to see its deep-dive intelligence report and win strategies</p>
+          {/* Recent Runs Audit Logs */}
+          <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-6 space-y-4">
+            <h2 className="text-base font-semibold text-white">Recent Gateway Activity Logs</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 text-white/40 pb-2">
+                    <th className="py-2">Time</th>
+                    <th className="py-2">Model</th>
+                    <th className="py-2">Mentioned</th>
+                    <th className="py-2">Rank</th>
+                    <th className="py-2">Speed (ms)</th>
+                    <th className="py-2">Tokens</th>
+                    <th className="py-2">Sentiment</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {recentRuns.map((r, i) => (
+                    <tr key={i} className="text-white/70 hover:bg-white/[0.02]">
+                      <td className="py-2.5">{new Date(r.created_at).toLocaleTimeString()}</td>
+                      <td className="py-2.5 font-medium text-white">{r.model}</td>
+                      <td className="py-2.5">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${r.is_mentioned ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                          {r.is_mentioned ? "Yes" : "No"}
+                        </span>
+                      </td>
+                      <td className="py-2.5">{r.rank ? `#${r.rank}` : "-"}</td>
+                      <td className="py-2.5 font-mono">{r.latency_ms || "-"}</td>
+                      <td className="py-2.5 font-mono">{r.tokens_used || "-"}</td>
+                      <td className="py-2.5">{r.sentiment_score !== undefined ? r.sentiment_score : "-"}</td>
+                    </tr>
+                  ))}
+                  {recentRuns.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="py-6 text-center text-white/30">No prompt runs recorded yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
         </>
       )}
     </div>
