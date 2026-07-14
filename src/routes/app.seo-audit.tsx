@@ -35,11 +35,31 @@ function SEOAudit() {
   const [geoLoading, setGeoLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [geoSaved, setGeoSaved] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
 
   useEffect(() => {
     if (website) runAudit(website);
     fetchProjects();
   }, [website]);
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      fetchSuggestions(selectedProjectId);
+    }
+  }, [selectedProjectId]);
+
+  const fetchSuggestions = async (projId: string) => {
+    try {
+      const { data } = await (supabase as any)
+        .from("content_suggestions")
+        .select("*")
+        .eq("project_id", projId)
+        .eq("is_implemented", false);
+      setSuggestions(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchProjects = async () => {
     const { data: projData } = await supabase.from("projects").select("id, name, brand, website, description").order("name");
@@ -348,6 +368,27 @@ function SEOAudit() {
               </div>
             )}
           </div>
+
+          {/* AEO Suggestions Checklist */}
+          {suggestions.length > 0 && (
+            <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-6 space-y-4">
+              <h2 className="text-base font-semibold text-white">AEO Content Suggestions</h2>
+              <p className="text-xs text-white/40">Automated optimizations to help engines index your brand.</p>
+              <div className="space-y-3">
+                {suggestions.map((s) => (
+                  <div key={s.id} className="rounded-xl bg-white/[0.02] border border-white/5 p-4 flex justify-between items-start gap-4">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-semibold text-white">{s.title}</h4>
+                      <p className="text-xs text-white/50">{s.action}</p>
+                    </div>
+                    <span className="text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded shrink-0">
+                      {s.impact} Impact
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Schema Markup Guide */}
           <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-6">

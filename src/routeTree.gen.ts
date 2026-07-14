@@ -24,6 +24,7 @@ import { Route as AppProjectsRouteImport } from './routes/app.projects'
 import { Route as AppModelsRouteImport } from './routes/app.models'
 import { Route as AppMentionsRouteImport } from './routes/app.mentions'
 import { Route as AppIntegrationsRouteImport } from './routes/app.integrations'
+import { Route as AppInsightsRouteImport } from './routes/app.insights'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCompetitorsRouteImport } from './routes/app.competitors'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
@@ -32,6 +33,7 @@ import { Route as AppAlertsRouteImport } from './routes/app.alerts'
 import { Route as ApiSeoAuditRouteImport } from './routes/api.seo-audit'
 import { Route as ApiRunScheduledPromptsRouteImport } from './routes/api.run-scheduled-prompts'
 import { Route as ApiPromptAuditRouteImport } from './routes/api.prompt-audit'
+import { Route as ApiGenerateInsightsRouteImport } from './routes/api.generate-insights'
 import { Route as ApiLlmsTxtProjectIdRouteImport } from './routes/api.llms-txt.$projectId'
 
 const AuthRoute = AuthRouteImport.update({
@@ -109,6 +111,11 @@ const AppIntegrationsRoute = AppIntegrationsRouteImport.update({
   path: '/integrations',
   getParentRoute: () => AppRoute,
 } as any)
+const AppInsightsRoute = AppInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -149,6 +156,11 @@ const ApiPromptAuditRoute = ApiPromptAuditRouteImport.update({
   path: '/api/prompt-audit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGenerateInsightsRoute = ApiGenerateInsightsRouteImport.update({
+  id: '/api/generate-insights',
+  path: '/api/generate-insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLlmsTxtProjectIdRoute = ApiLlmsTxtProjectIdRouteImport.update({
   id: '/api/llms-txt/$projectId',
   path: '/api/llms-txt/$projectId',
@@ -160,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/analysis': typeof AnalysisRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/api/generate-insights': typeof ApiGenerateInsightsRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
@@ -168,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/app/billing': typeof AppBillingRoute
   '/app/competitors': typeof AppCompetitorsRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/insights': typeof AppInsightsRoute
   '/app/integrations': typeof AppIntegrationsRoute
   '/app/mentions': typeof AppMentionsRoute
   '/app/models': typeof AppModelsRoute
@@ -185,6 +199,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
   '/auth': typeof AuthRoute
+  '/api/generate-insights': typeof ApiGenerateInsightsRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
@@ -193,6 +208,7 @@ export interface FileRoutesByTo {
   '/app/billing': typeof AppBillingRoute
   '/app/competitors': typeof AppCompetitorsRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/insights': typeof AppInsightsRoute
   '/app/integrations': typeof AppIntegrationsRoute
   '/app/mentions': typeof AppMentionsRoute
   '/app/models': typeof AppModelsRoute
@@ -212,6 +228,7 @@ export interface FileRoutesById {
   '/analysis': typeof AnalysisRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/api/generate-insights': typeof ApiGenerateInsightsRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
@@ -220,6 +237,7 @@ export interface FileRoutesById {
   '/app/billing': typeof AppBillingRoute
   '/app/competitors': typeof AppCompetitorsRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/insights': typeof AppInsightsRoute
   '/app/integrations': typeof AppIntegrationsRoute
   '/app/mentions': typeof AppMentionsRoute
   '/app/models': typeof AppModelsRoute
@@ -240,6 +258,7 @@ export interface FileRouteTypes {
     | '/analysis'
     | '/app'
     | '/auth'
+    | '/api/generate-insights'
     | '/api/prompt-audit'
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
@@ -248,6 +267,7 @@ export interface FileRouteTypes {
     | '/app/billing'
     | '/app/competitors'
     | '/app/dashboard'
+    | '/app/insights'
     | '/app/integrations'
     | '/app/mentions'
     | '/app/models'
@@ -265,6 +285,7 @@ export interface FileRouteTypes {
     | '/'
     | '/analysis'
     | '/auth'
+    | '/api/generate-insights'
     | '/api/prompt-audit'
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
@@ -273,6 +294,7 @@ export interface FileRouteTypes {
     | '/app/billing'
     | '/app/competitors'
     | '/app/dashboard'
+    | '/app/insights'
     | '/app/integrations'
     | '/app/mentions'
     | '/app/models'
@@ -291,6 +313,7 @@ export interface FileRouteTypes {
     | '/analysis'
     | '/app'
     | '/auth'
+    | '/api/generate-insights'
     | '/api/prompt-audit'
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
@@ -299,6 +322,7 @@ export interface FileRouteTypes {
     | '/app/billing'
     | '/app/competitors'
     | '/app/dashboard'
+    | '/app/insights'
     | '/app/integrations'
     | '/app/mentions'
     | '/app/models'
@@ -318,6 +342,7 @@ export interface RootRouteChildren {
   AnalysisRoute: typeof AnalysisRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiGenerateInsightsRoute: typeof ApiGenerateInsightsRoute
   ApiPromptAuditRoute: typeof ApiPromptAuditRoute
   ApiRunScheduledPromptsRoute: typeof ApiRunScheduledPromptsRoute
   ApiSeoAuditRoute: typeof ApiSeoAuditRoute
@@ -431,6 +456,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIntegrationsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/insights': {
+      id: '/app/insights'
+      path: '/insights'
+      fullPath: '/app/insights'
+      preLoaderRoute: typeof AppInsightsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/dashboard': {
       id: '/app/dashboard'
       path: '/dashboard'
@@ -487,6 +519,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPromptAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/generate-insights': {
+      id: '/api/generate-insights'
+      path: '/api/generate-insights'
+      fullPath: '/api/generate-insights'
+      preLoaderRoute: typeof ApiGenerateInsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/llms-txt/$projectId': {
       id: '/api/llms-txt/$projectId'
       path: '/api/llms-txt/$projectId'
@@ -503,6 +542,7 @@ interface AppRouteChildren {
   AppBillingRoute: typeof AppBillingRoute
   AppCompetitorsRoute: typeof AppCompetitorsRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppInsightsRoute: typeof AppInsightsRoute
   AppIntegrationsRoute: typeof AppIntegrationsRoute
   AppMentionsRoute: typeof AppMentionsRoute
   AppModelsRoute: typeof AppModelsRoute
@@ -522,6 +562,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBillingRoute: AppBillingRoute,
   AppCompetitorsRoute: AppCompetitorsRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppInsightsRoute: AppInsightsRoute,
   AppIntegrationsRoute: AppIntegrationsRoute,
   AppMentionsRoute: AppMentionsRoute,
   AppModelsRoute: AppModelsRoute,
@@ -542,6 +583,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnalysisRoute: AnalysisRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiGenerateInsightsRoute: ApiGenerateInsightsRoute,
   ApiPromptAuditRoute: ApiPromptAuditRoute,
   ApiRunScheduledPromptsRoute: ApiRunScheduledPromptsRoute,
   ApiSeoAuditRoute: ApiSeoAuditRoute,

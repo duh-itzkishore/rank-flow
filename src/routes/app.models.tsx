@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Bot, TrendingUp, TrendingDown, Info, Clock, DollarSign, Heart } from "lucide-react";
+import { Loader2, Bot, TrendingUp, TrendingDown, Info, Clock, DollarSign, Heart, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip } from "recharts";
@@ -88,6 +88,8 @@ function AIModels() {
   const [loading, setLoading] = useState(true);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [recentRuns, setRecentRuns] = useState<any[]>([]);
+  const [bottomTab, setBottomTab] = useState<"logs" | "hallucinations">("logs");
+  const [hallucinations, setHallucinations] = useState<any[]>([]);
 
   useEffect(() => {
     fetchStats();
@@ -107,6 +109,14 @@ function AIModels() {
       if (error) throw error;
       const runs = data || [];
       setRecentRuns(runs.slice(0, 15)); // Get recent runs for log section
+
+      // Query hallucination alerts
+      const { data: halData } = await (supabase as any)
+        .from("alerts")
+        .select("*")
+        .eq("type", "hallucination")
+        .order("created_at", { ascending: false });
+      setHallucinations(halData || []);
 
       const result: Record<string, ModelStats> = {};
       for (const model of MODELS.map((m) => m.key)) {
@@ -289,46 +299,82 @@ function AIModels() {
             );
           })()}
 
-          {/* Recent Runs Audit Logs */}
+          {/* Bottom Tabs Section */}
           <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-6 space-y-4">
-            <h2 className="text-base font-semibold text-white">Recent Gateway Activity Logs</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-white/5 text-white/40 pb-2">
-                    <th className="py-2">Time</th>
-                    <th className="py-2">Model</th>
-                    <th className="py-2">Mentioned</th>
-                    <th className="py-2">Rank</th>
-                    <th className="py-2">Speed (ms)</th>
-                    <th className="py-2">Tokens</th>
-                    <th className="py-2">Sentiment</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {recentRuns.map((r, i) => (
-                    <tr key={i} className="text-white/70 hover:bg-white/[0.02]">
-                      <td className="py-2.5">{new Date(r.created_at).toLocaleTimeString()}</td>
-                      <td className="py-2.5 font-medium text-white">{r.model}</td>
-                      <td className="py-2.5">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${r.is_mentioned ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                          {r.is_mentioned ? "Yes" : "No"}
-                        </span>
-                      </td>
-                      <td className="py-2.5">{r.rank ? `#${r.rank}` : "-"}</td>
-                      <td className="py-2.5 font-mono">{r.latency_ms || "-"}</td>
-                      <td className="py-2.5 font-mono">{r.tokens_used || "-"}</td>
-                      <td className="py-2.5">{r.sentiment_score !== undefined ? r.sentiment_score : "-"}</td>
-                    </tr>
-                  ))}
-                  {recentRuns.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-6 text-center text-white/30">No prompt runs recorded yet.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="flex border-b border-white/5 pb-2 items-center justify-between">
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setBottomTab("logs")}
+                  className={`text-xs font-semibold pb-2 border-b-2 transition-all ${bottomTab === "logs" ? "border-indigo-500 text-white" : "border-transparent text-white/40"}`}
+                >
+                  Gateway Activity Logs
+                </button>
+                <button 
+                  onClick={() => setBottomTab("hallucinations")}
+                  className={`text-xs font-semibold pb-2 border-b-2 transition-all ${bottomTab === "hallucinations" ? "border-indigo-500 text-white" : "border-transparent text-white/40"}`}
+                >
+                  Hallucination Monitor ({hallucinations.length})
+                </button>
+              </div>
             </div>
+
+            {bottomTab === "logs" ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/5 text-white/40 pb-2">
+                      <th className="py-2">Time</th>
+                      <th className="py-2">Model</th>
+                      <th className="py-2">Mentioned</th>
+                      <th className="py-2">Rank</th>
+                      <th className="py-2">Speed (ms)</th>
+                      <th className="py-2">Tokens</th>
+                      <th className="py-2">Sentiment</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {recentRuns.map((r, i) => (
+                      <tr key={i} className="text-white/70 hover:bg-white/[0.02]">
+                        <td className="py-2.5">{new Date(r.created_at).toLocaleTimeString()}</td>
+                        <td className="py-2.5 font-medium text-white">{r.model}</td>
+                        <td className="py-2.5">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${r.is_mentioned ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                            {r.is_mentioned ? "Yes" : "No"}
+                          </span>
+                        </td>
+                        <td className="py-2.5">{r.rank ? `#${r.rank}` : "-"}</td>
+                        <td className="py-2.5 font-mono">{r.latency_ms || "-"}</td>
+                        <td className="py-2.5 font-mono">{r.tokens_used || "-"}</td>
+                        <td className="py-2.5">{r.sentiment_score !== undefined ? r.sentiment_score : "-"}</td>
+                      </tr>
+                    ))}
+                    {recentRuns.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="py-6 text-center text-white/30">No prompt runs recorded yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {hallucinations.map((h) => (
+                  <div key={h.id} className="rounded-xl bg-red-950/10 border border-red-900/20 p-4 flex items-start gap-3">
+                    <ShieldAlert className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-xs font-semibold text-white">Hallucinated Claim Detected</h4>
+                      <p className="text-xs text-white/60 mt-1">{h.message}</p>
+                      <span className="inline-block text-[9px] text-white/30 mt-2">{new Date(h.created_at).toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+                {hallucinations.length === 0 && (
+                  <div className="py-8 text-center text-white/30 text-xs">
+                    No hallucination patterns detected in recent scans.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}

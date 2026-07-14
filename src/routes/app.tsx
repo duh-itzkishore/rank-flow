@@ -20,6 +20,7 @@ const mainNav = [
   { title: "Projects",    url: "/app/projects",       icon: FolderOpen      },
   { title: "Prompts",     url: "/app/prompts",        icon: MessageSquare   },
   { title: "AI Models",   url: "/app/models",         icon: Bot             },
+  { title: "AI Insights", url: "/app/insights",       icon: Sparkles        },
   { title: "Rankings",    url: "/app/rankings",        icon: Trophy          },
   { title: "Mentions",    url: "/app/mentions",        icon: AtSign          },
   { title: "Competitors", url: "/app/competitors",     icon: Target          },

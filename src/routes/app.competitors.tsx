@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  BarChart, Bar, Cell, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Cell, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Legend
 } from "recharts";
-import { TrendingUp, TrendingDown, Plus, Loader2, X, Target, ChevronDown, Zap, ExternalLink, Trash2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, Loader2, X, Target, ChevronDown, Zap, ExternalLink, Trash2, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -21,7 +21,6 @@ type Competitor = {
   sample_citations: { title: string; url: string }[];
 };
 
-// Dislodgement playbook steps based on competitor name
 function generatePlaybook(competitor: Competitor, brandName: string) {
   return [
     {
@@ -52,11 +51,17 @@ function generatePlaybook(competitor: Competitor, brandName: string) {
 }
 
 function Competitors() {
+  const [activeTab, setActiveTab] = useState<"overview" | "gap" | "sov" | "sentiment">("overview");
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<string>("all");
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Stats / Gap Data states
+  const [gapPrompts, setGapPrompts] = useState<any[]>([]);
+  const [sovData, setSovData] = useState<any[]>([]);
+  const [sentimentData, setSentimentData] = useState<any[]>([]);
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -71,7 +76,7 @@ function Competitors() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedProject]);
 
   const fetchData = async () => {
     try {
@@ -86,23 +91,28 @@ function Competitors() {
         .select("id, name, brand")
         .order("name");
       setProjects(projData || []);
+      
+      const currentProjId = selectedProject === "all" ? (projData?.[0]?.id || "") : selectedProject;
       if (projData && projData.length > 0 && !selectedProjectId) {
         setSelectedProjectId(projData[0].id);
       }
 
       // Fetch competitors
-      const { data: compData, error: compErr } = await (supabase as any)
-        .from("competitors")
-        .select("id, name, domain, project_id")
-        .order("created_at", { ascending: false });
+      const compQuery = (supabase as any).from("competitors").select("id, name, domain, project_id");
+      if (selectedProject !== "all") {
+        compQuery.eq("project_id", selectedProject);
+      }
+      const { data: compData, error: compErr } = await compQuery.order("created_at", { ascending: false });
       if (compErr) throw compErr;
 
-      // Fetch all prompt_runs to count competitor mentions in response text
-      const { data: runs } = await supabase
-        .from("prompt_runs")
-        .select("id, response_text, citations");
+      // Fetch prompt runs
+      const runsQuery = (supabase as any).from("prompt_runs").select("id, response_text, citations, is_mentioned, model, sentiment_score, prompts!inner(text, project_id)");
+      if (selectedProject !== "all") {
+        runsQuery.eq("prompts.project_id", selectedProject);
+      }
+      const { data: runs } = await runsQuery;
 
-      // For each competitor, count how many runs mention their name
+      // Enrich competitors
       const enriched: Competitor[] = (compData || []).map((c: any) => {
         const matchingRuns = (runs || []).filter((r: any) =>
           r.response_text?.toLowerCase().includes(c.name.toLowerCase())
@@ -123,10 +133,63 @@ function Competitors() {
           sample_citations: allCitations.slice(0, 3),
         };
       });
-
       setCompetitors(enriched);
+
+      // 1. GAP ANALYSIS: Find runs where competitor is mentioned but we are NOT
+      const gapList: any[] = [];
+      if (runs) {
+        runs.forEach((r: any) => {
+          if (!r.is_mentioned) {
+            // Find which competitors are mentioned in this run
+            const mentionedComps = enriched.filter(c => 
+              c.project_id === r.prompts?.project_id && 
+              r.response_text.toLowerCase().includes(c.name.toLowerCase())
+            );
+            if (mentionedComps.length > 0) {
+              gapList.push({
+                promptText: r.prompts?.text,
+                competitors: mentionedComps.map(c => c.name).join(", "),
+                model: r.model
+              });
+            }
+          }
+        });
+      }
+      setGapPrompts(gapList.slice(0, 10));
+
+      // 2. SOV calculation
+      const chartColors = ["#6366f1", "#10a37f", "#4285f4", "#c85a2a", "#7c3aed"];
+      const totalRunsCount = runs?.length || 1;
+      const sov = enriched.map((c, i) => ({
+        name: c.name,
+        value: Math.round((c.mention_count / totalRunsCount) * 100),
+        color: chartColors[i % chartColors.length]
+      }));
+      setSovData(sov);
+
+      // 3. Sentiment Comparison (mock/heuristics for comp sentiment based on positive context)
+      const sent = enriched.map(c => {
+        const compRuns = (runs || []).filter((r: any) => r.response_text.toLowerCase().includes(c.name.toLowerCase()));
+        const compAvgSent = compRuns.length > 0
+          ? compRuns.reduce((acc: any, r: any) => acc + (r.sentiment_score || 0), 0) / compRuns.length
+          : 0;
+        
+        // Find our brand sentiment in same project runs
+        const ourRuns = (runs || []).filter((r: any) => r.is_mentioned);
+        const ourAvgSent = ourRuns.length > 0
+          ? ourRuns.reduce((acc: any, r: any) => acc + (r.sentiment_score || 0), 0) / ourRuns.length
+          : 0;
+
+        return {
+          name: c.name,
+          competitorSentiment: parseFloat(compAvgSent.toFixed(2)),
+          ourSentiment: parseFloat(ourAvgSent.toFixed(2))
+        };
+      });
+      setSentimentData(sent);
+
     } catch (err: any) {
-      toast.error("Failed to load competitors: " + err.message);
+      toast.error("Failed to load competitor data: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -167,23 +230,13 @@ function Competitors() {
     setPlaybookComp(comp);
   };
 
-  const filtered = selectedProject === "all"
-    ? competitors
-    : competitors.filter((c) => c.project_id === selectedProject);
-
-  // Sort by mention count desc for chart
-  const chartData = [...filtered]
-    .sort((a, b) => b.mention_count - a.mention_count)
-    .slice(0, 8)
-    .map((c) => ({ name: c.name, mentions: c.mention_count }));
-
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 pb-20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Competitors</h1>
-          <p className="mt-1 text-sm text-white/40">Track rivals · Get dislodgement playbooks to steal their AI citations</p>
+          <h1 className="text-2xl font-semibold text-white tracking-tight">Competitor Intelligence</h1>
+          <p className="mt-1 text-sm text-white/40">Track competitor visibility, spot gaps, and customize dislodgement playbooks</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -211,109 +264,185 @@ function Competitors() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex border-b border-white/5">
+        {[
+          { key: "overview", label: "Overview" },
+          { key: "gap", label: "Gap Analysis" },
+          { key: "sov", label: "Share of Voice (SOV)" },
+          { key: "sentiment", label: "Sentiment Comparison" }
+        ].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key as any)}
+            className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === t.key 
+                ? "border-indigo-500 text-white" 
+                : "border-transparent text-white/40 hover:text-white/70"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center py-20 text-white/40 text-sm gap-2">
           <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
-          Loading competitors…
+          Loading competitor intelligence…
         </div>
       ) : (
         <>
-          {filtered.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.01] p-12 text-center">
-              <Target className="w-10 h-10 text-white/20 mx-auto mb-4" />
-              <h3 className="text-sm font-semibold text-white">No competitors tracked</h3>
-              <p className="mt-1 text-xs text-white/45 max-w-xs mx-auto leading-relaxed">
-                Add competitors to benchmark your AI visibility and get automated dislodgement strategies.
-              </p>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add First Competitor
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Competitor Cards Grid */}
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {filtered.map((c) => {
-                  const proj = projects.find((p) => p.id === c.project_id);
-                  return (
-                    <div key={c.id} className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-5 hover:bg-white/[0.05] transition-colors group">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <div className="text-sm font-semibold text-white">{c.name}</div>
-                          {c.domain && (
-                            <a
-                              href={`https://${c.domain}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[10px] text-white/30 hover:text-indigo-400 transition-colors flex items-center gap-1 mt-0.5"
+          {activeTab === "overview" && (
+            <div className="space-y-6">
+              {competitors.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.01] p-12 text-center">
+                  <Target className="w-10 h-10 text-white/20 mx-auto mb-4" />
+                  <h3 className="text-sm font-semibold text-white">No competitors tracked</h3>
+                  <p className="mt-1 text-xs text-white/45 max-w-xs mx-auto leading-relaxed">
+                    Add competitors to benchmark your AI visibility and get automated dislodgement strategies.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {competitors.map((c) => {
+                    const proj = projects.find((p) => p.id === c.project_id);
+                    return (
+                      <div key={c.id} className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-5 hover:bg-white/[0.05] transition-colors group">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <div className="text-sm font-semibold text-white">{c.name}</div>
+                            {c.domain && (
+                              <a
+                                href={`https://${c.domain}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[10px] text-white/30 hover:text-indigo-400 transition-colors flex items-center gap-1 mt-0.5"
+                              >
+                                {c.domain} <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            )}
+                            {proj && <div className="text-[10px] text-indigo-400/70 mt-0.5">{proj.name}</div>}
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleDelete(c.id)}
+                              className="p-1 rounded-lg hover:bg-red-500/10 text-white/30 hover:text-red-400 transition-colors"
                             >
-                              {c.domain} <ExternalLink className="w-2.5 h-2.5" />
-                            </a>
-                          )}
-                          {proj && <div className="text-[10px] text-indigo-400/70 mt-0.5">{proj.name}</div>}
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleDelete(c.id)}
-                            className="p-1 rounded-lg hover:bg-red-500/10 text-white/30 hover:text-red-400 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+
+                        <div className="flex items-center gap-3 mb-4">
+                          <div>
+                            <div className="text-xl font-bold text-white">{c.mention_count}</div>
+                            <div className="text-[9px] text-white/30 uppercase tracking-wider">AI Mentions Detected</div>
+                          </div>
                         </div>
+
+                        <button
+                          onClick={() => openPlaybook(c)}
+                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/15 transition-colors"
+                        >
+                          <Zap className="w-3.5 h-3.5" />
+                          Dislodgement Playbook
+                        </button>
                       </div>
-
-                      <div className="flex items-center gap-3 mb-4">
-                        <div>
-                          <div className="text-xl font-bold text-white">{c.mention_count}</div>
-                          <div className="text-[9px] text-white/30 uppercase tracking-wider">AI Mentions Detected</div>
-                        </div>
-                        <div className="ml-auto">
-                          {c.mention_count > 0 ? (
-                            <TrendingUp className="w-5 h-5 text-red-400" />
-                          ) : (
-                            <TrendingDown className="w-5 h-5 text-white/20" />
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => openPlaybook(c)}
-                        className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/15 transition-colors"
-                      >
-                        <Zap className="w-3.5 h-3.5" />
-                        Dislodgement Playbook
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Comparison Chart */}
-              {chartData.some((d) => d.mentions > 0) && (
-                <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-6">
-                  <h2 className="text-base font-semibold text-white mb-1">AI Mention Frequency</h2>
-                  <p className="text-xs text-white/35 mb-4">How often each competitor appears in AI responses across your prompt scans</p>
-                  <div className="h-52">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                        <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} />
-                        <YAxis stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} />
-                        <Tooltip contentStyle={{ background: "#242427", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, fontSize: 12, color: "#fff" }} />
-                        <Bar dataKey="mentions" name="AI Mentions" radius={[4, 4, 0, 0]}>
-                          {chartData.map((_, i) => (
-                            <Cell key={i} fill={i === 0 ? "#ef4444" : "rgba(255,255,255,0.08)"} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                    );
+                  })}
                 </div>
               )}
-            </>
+            </div>
+          )}
+
+          {activeTab === "gap" && (
+            <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-6 space-y-4">
+              <h2 className="text-base font-semibold text-white">Competitor Visibility Gaps</h2>
+              <p className="text-xs text-white/35">These are prompts where competitors are featured but your brand is currently absent.</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/5 text-white/40 pb-2">
+                      <th className="py-2">Prompt</th>
+                      <th className="py-2">Featured Competitor(s)</th>
+                      <th className="py-2">AI Engine</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {gapPrompts.map((g, i) => (
+                      <tr key={i} className="text-white/70">
+                        <td className="py-3 font-medium text-indigo-400">{g.promptText}</td>
+                        <td className="py-3">{g.competitors}</td>
+                        <td className="py-3 capitalize">{g.model}</td>
+                      </tr>
+                    ))}
+                    {gapPrompts.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="py-6 text-center text-white/30">No visibility gaps detected. Good job!</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "sov" && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-6 flex flex-col justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-white">Share of Voice %</h2>
+                  <p className="text-xs text-white/35 mt-0.5">Competitor share of total AI mentions across all prompt scans</p>
+                </div>
+                <div className="h-56 mt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={sovData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={80} stroke="none">
+                        {sovData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ background: "#242427", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, fontSize: 12, color: "#fff" }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <ul className="space-y-2 mt-4">
+                  {sovData.map((s, idx) => (
+                    <li key={idx} className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-2 text-white/60">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />{s.name}
+                      </span>
+                      <span className="font-bold text-white">{s.value}% SOV</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-6">
+                <h2 className="text-base font-semibold text-white">Quick Summary</h2>
+                <p className="text-xs text-white/35 mt-1 leading-relaxed">
+                  Share of Voice is key to understanding brand visibility inside LLM search crawlers. Optimize content to mention your brand as a preferred choice for the competitor's high-ranking domains.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "sentiment" && (
+            <div className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-6 space-y-4">
+              <h2 className="text-base font-semibold text-white">Sentiment Benchmark</h2>
+              <p className="text-xs text-white/35">Benchmark brand sentiment against competitor mentions (-1 to +1 scale).</p>
+              <div className="h-64 mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={sentimentData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                    <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={11} tickLine={false} />
+                    <YAxis stroke="rgba(255,255,255,0.2)" fontSize={11} tickLine={false} />
+                    <Tooltip contentStyle={{ background: "#242427", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, fontSize: 12, color: "#fff" }} />
+                    <Legend />
+                    <Bar dataKey="ourSentiment" name="Our Sentiment" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="competitorSentiment" name="Competitor Sentiment" fill="rgba(255,255,255,0.15)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           )}
         </>
       )}
