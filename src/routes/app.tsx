@@ -107,7 +107,7 @@ function AppLayout() {
     <div className="flex h-screen w-full overflow-hidden bg-[#141416]">
       {/* ── Sidebar ────────────────────────────────── */}
       <aside
-        className={`flex flex-col h-full border-r border-white/5 bg-[#1a1a1c] transition-all duration-300 ${
+        className={`flex flex-col h-full border-r border-white/5 bg-[#1a1a1c] transition-all duration-300 print:hidden ${
           collapsed ? "w-16" : "w-[220px]"
         }`}
       >
@@ -206,7 +206,7 @@ function AppLayout() {
       {/* ── Main content ───────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top header bar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-white/5 bg-[#141416]/80 px-6 backdrop-blur-md">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-white/5 bg-[#141416]/80 px-6 backdrop-blur-md print:hidden">
           <div className="relative hidden max-w-md flex-1 sm:block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/25" />
             <input

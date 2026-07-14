@@ -185,6 +185,10 @@ function Analytics() {
     URL.revokeObjectURL(url);
   };
 
+  const exportPDF = () => {
+    window.print();
+  };
+
   const mentionRate = totalRuns > 0 ? Math.round((totalMentioned / totalRuns) * 100) : 0;
 
   return (
@@ -192,10 +196,10 @@ function Analytics() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Analytics</h1>
-          <p className="mt-1 text-sm text-white/40">AI visibility trends, share of voice & performance over time</p>
+          <h1 className="text-2xl font-semibold text-white tracking-tight print:text-black">Analytics Report</h1>
+          <p className="mt-1 text-sm text-white/40 print:text-black/60">AI visibility trends, share of voice & performance over time</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 print:hidden">
           {(["7d", "30d", "90d"] as Range[]).map((r) => (
             <button
               key={r}
@@ -213,7 +217,13 @@ function Analytics() {
             onClick={exportCSV}
             className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 ring-1 ring-white/10 px-3.5 py-2 text-sm font-medium text-white/60 hover:bg-white/10 transition-colors"
           >
-            <Download className="w-3.5 h-3.5" /> Export
+            <Download className="w-3.5 h-3.5" /> CSV
+          </button>
+          <button
+            onClick={exportPDF}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+          >
+            PDF Report
           </button>
         </div>
       </div>
