@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CreditCard } from "lucide-react";
+import { CreditCard, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/billing")({
   component: Billing,
@@ -14,6 +16,24 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 }
 
 function Billing() {
+  const [loading, setLoading] = useState(false);
+  const [plan, setPlan] = useState("Pro");
+
+  const handleUpgrade = async () => {
+    try {
+      setLoading(true);
+      toast.loading("Redirecting to Stripe secure checkout...");
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      toast.dismiss();
+      setPlan("Enterprise");
+      toast.success("Successfully upgraded to Enterprise Tier!");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div>
@@ -30,20 +50,27 @@ function Billing() {
                 <div className="text-xs text-white/35">Billed monthly</div>
               </div>
               <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 text-indigo-400 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider">
-                Pro
+                {plan}
               </span>
             </div>
             <div className="text-3xl font-bold text-white mt-1">
-              $79<span className="text-sm text-white/30 font-normal">/mo</span>
+              {plan === "Pro" ? "$79" : "$299"}<span className="text-sm text-white/30 font-normal">/mo</span>
             </div>
             <div className="text-xs text-white/30 mt-2">Next billing: Aug 1, 2026</div>
           </div>
           <div className="mt-6 flex gap-2.5">
-            <button className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors">
-              Upgrade Plan
-            </button>
+            {plan !== "Enterprise" && (
+              <button
+                onClick={handleUpgrade}
+                disabled={loading}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors flex items-center gap-1.5"
+              >
+                {loading && <Loader2 className="w-4.5 h-4.5 animate-spin" />}
+                Upgrade to Enterprise
+              </button>
+            )}
             <button className="rounded-lg bg-white/5 text-white/60 ring-1 ring-white/10 px-3.5 py-2 text-sm font-medium hover:bg-white/10 transition-colors">
-              Manage
+              Manage Billing Portal
             </button>
           </div>
         </Card>
@@ -51,9 +78,9 @@ function Billing() {
         <Card>
           <h2 className="text-sm font-semibold text-white mb-4">Usage This Month</h2>
           {[
-            { label: "API Calls", used: 8420, limit: 10000 },
-            { label: "Prompts", used: 142, limit: 200 },
-            { label: "Team Members", used: 4, limit: 5 },
+            { label: "API Calls", used: 8420, limit: plan === "Pro" ? 10000 : 50000 },
+            { label: "Prompts", used: 142, limit: plan === "Pro" ? 200 : 1000 },
+            { label: "Team Members", used: 4, limit: plan === "Pro" ? 5 : 25 },
           ].map((u) => (
             <div key={u.label} className="mb-4 last:mb-0">
               <div className="flex items-center justify-between text-xs text-white/40 mb-1.5 font-medium">

@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { BarChart3, Mail, MessageSquare, Webhook, Link2, Database } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BarChart3, Mail, MessageSquare, Webhook, Link2, Database, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/integrations")({
   component: Integrations,
@@ -15,14 +17,61 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 }
 
 function Integrations() {
-  const [connections, setConnections] = useState<Record<string, boolean>>({
-    ga4: true,
+  const [connections, setConnections] = useState<Record<string, any>>({
+    ga4: false,
     hubspot: false,
-    slack: true,
+    slack: false,
+    mail: false,
+    webhook: false,
   });
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  const toggle = (id: string) => {
-    setConnections(prev => ({ ...prev, [id]: !prev[id] }));
+  useEffect(() => {
+    fetchPrefs();
+  }, []);
+
+  const fetchPrefs = async () => {
+    try {
+      setLoading(true);
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) return;
+      setUserId(authData.user.id);
+
+      const { data } = await (supabase as any)
+        .from("user_settings")
+        .select("notification_prefs")
+        .eq("user_id", authData.user.id)
+        .maybeSingle();
+      
+      if (data?.notification_prefs) {
+        setConnections((data.notification_prefs as any).connections || {});
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggle = async (id: string) => {
+    if (!userId) return;
+    try {
+      const nextConnections = { ...connections, [id]: !connections[id] };
+      setConnections(nextConnections);
+
+      const { error } = await (supabase as any)
+        .from("user_settings")
+        .update({
+          notification_prefs: { connections: nextConnections }
+        } as any)
+        .eq("user_id", userId);
+      
+      if (error) throw error;
+      toast.success(`${id.toUpperCase()} connection status updated!`);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const integrations = [
@@ -40,36 +89,43 @@ function Integrations() {
         <p className="mt-1 text-sm text-white/40">Connect your analytics and CRM to power the ROI Attribution Engine.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {integrations.map((integ) => {
-          const isConnected = !!connections[integ.id];
-          return (
-            <Card key={integ.id} className="flex flex-col gap-4">
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-10 h-10 rounded-xl grid place-items-center shrink-0 border border-white/5"
-                  style={{ background: `${integ.color}18`, color: integ.color }}
-                >
-                  {integ.icon}
+      {loading ? (
+        <div className="flex items-center gap-2 text-white/40 text-sm py-10">
+          <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+          Loading integrations preferences…
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {integrations.map((integ) => {
+            const isConnected = !!connections[integ.id];
+            return (
+              <Card key={integ.id} className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-10 h-10 rounded-xl grid place-items-center shrink-0 border border-white/5"
+                    style={{ background: `${integ.color}18`, color: integ.color }}
+                  >
+                    {integ.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-white">{integ.name}</div>
+                    <div className="text-[10px] text-white/35 uppercase tracking-wider font-semibold mt-0.5">{integ.type}</div>
+                  </div>
+                  <button
+                    onClick={() => toggle(integ.id)}
+                    className={`w-10 h-5 rounded-full flex items-center px-0.5 transition-colors cursor-pointer shrink-0 ${isConnected ? "bg-indigo-500/40 justify-end" : "bg-white/10 justify-start"}`}
+                  >
+                    <div className={`w-4 h-4 rounded-full shadow-sm transition-transform ${isConnected ? "bg-indigo-400" : "bg-white/30"}`} />
+                  </button>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-white">{integ.name}</div>
-                  <div className="text-[10px] text-white/35 uppercase tracking-wider font-semibold mt-0.5">{integ.type}</div>
-                </div>
-                <button
-                  onClick={() => toggle(integ.id)}
-                  className={`w-10 h-5 rounded-full flex items-center px-0.5 transition-colors cursor-pointer shrink-0 ${isConnected ? "bg-emerald-500/40 justify-end" : "bg-white/10 justify-start"}`}
-                >
-                  <div className={`w-4 h-4 rounded-full shadow-sm transition-transform ${isConnected ? "bg-emerald-400" : "bg-white/30"}`} />
-                </button>
-              </div>
-              <p className="text-xs text-white/50 leading-relaxed border-t border-white/5 pt-3">
-                {integ.desc}
-              </p>
-            </Card>
-          );
-        })}
-      </div>
+                <p className="text-xs text-white/50 leading-relaxed border-t border-white/5 pt-3">
+                  {integ.desc}
+                </p>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
