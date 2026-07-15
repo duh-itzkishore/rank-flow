@@ -79,18 +79,28 @@ export const Route = createFileRoute("/api/prompt-audit")({
             }
           }
 
-          // Models we audit
-          const models = ["chatgpt", "gemini", "perplexity", "claude"];
+          // Build dynamic model list — always include core models, add free models if keys are configured
+          const coreModels = ["chatgpt", "gemini", "perplexity", "claude"];
+          const freeModels = ["groq", "openrouter"];
+          // Include free models if their key is configured
+          const models = [
+            ...coreModels,
+            ...freeModels.filter((m) => !!apiKeys[m]),
+          ];
           const runsCreated = [];
           const alertsToCreate: any[] = [];
 
           for (const model of models) {
-            // Get configured key mapping
-            let providerKey = null;
-            if (model === "chatgpt") providerKey = apiKeys["openai"];
-            if (model === "claude") providerKey = apiKeys["anthropic"];
-            if (model === "gemini") providerKey = apiKeys["google"];
-            if (model === "perplexity") providerKey = apiKeys["perplexity"];
+            // Map gateway model names → api_key_configs provider ids
+            const providerIdMap: Record<string, string> = {
+              chatgpt:    "openai",
+              claude:     "anthropic",
+              gemini:     "gemini",   // fixed: was "google"
+              perplexity: "perplexity",
+              groq:       "groq",
+              openrouter: "openrouter",
+            };
+            const providerKey = apiKeys[providerIdMap[model]] || null;
 
             // Query live AI model via Gateway
             const result = await queryAIModel(model, promptText, brandName, providerKey);

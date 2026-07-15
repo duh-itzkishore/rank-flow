@@ -10,37 +10,61 @@ export const Route = createFileRoute("/app/settings")({
 });
 
 const AI_PROVIDERS = [
+  // ── FREE providers (start here!) ──────────────
+  {
+    id: "gemini",
+    label: "Google Gemini",
+    models: "Gemini 1.5 Flash — FREE (1,500 req/day)",
+    docsUrl: "https://aistudio.google.com/app/apikey",
+    placeholder: "AIzaSy...",
+    color: "#4285f4",
+    isFree: true,
+  },
+  {
+    id: "groq",
+    label: "Groq",
+    models: "Llama 3.3 70B — FREE (30 req/min)",
+    docsUrl: "https://console.groq.com/keys",
+    placeholder: "gsk_...",
+    color: "#f97316",
+    isFree: true,
+  },
+  {
+    id: "openrouter",
+    label: "OpenRouter",
+    models: "Llama 3.2, Gemma, Mistral — FREE models available",
+    docsUrl: "https://openrouter.ai/keys",
+    placeholder: "sk-or-v1-...",
+    color: "#8b5cf6",
+    isFree: true,
+  },
+  // ── Paid providers ─────────────────────────────
   {
     id: "openai",
     label: "OpenAI",
-    models: "GPT-4o, GPT-4o-mini",
+    models: "GPT-4o-mini, GPT-4o (paid)",
     docsUrl: "https://platform.openai.com/api-keys",
     placeholder: "sk-proj-...",
     color: "#10a37f",
+    isFree: false,
   },
   {
     id: "anthropic",
     label: "Anthropic",
-    models: "Claude 3.5 Sonnet, Claude 3 Haiku",
+    models: "Claude 3.5 Sonnet, Claude Haiku (paid)",
     docsUrl: "https://console.anthropic.com/settings/keys",
     placeholder: "sk-ant-api03-...",
     color: "#d97757",
-  },
-  {
-    id: "google",
-    label: "Google Gemini",
-    models: "Gemini 1.5 Pro, Gemini Flash",
-    docsUrl: "https://aistudio.google.com/app/apikey",
-    placeholder: "AIzaSy...",
-    color: "#4285f4",
+    isFree: false,
   },
   {
     id: "perplexity",
     label: "Perplexity AI",
-    models: "Sonar Large, Sonar Small",
+    models: "Sonar Large — Online web search (paid)",
     docsUrl: "https://www.perplexity.ai/settings/api",
     placeholder: "pplx-...",
     color: "#20b2aa",
+    isFree: false,
   },
 ];
 
@@ -77,12 +101,52 @@ function Settings() {
           .single();
         if (profileData) setProfile({ ...profileData, email: authData.user.email });
 
-        const { data: orgData } = await (supabase as any)
-          .from("organizations")
-          .select("*, org_members!inner(role)")
-          .eq("org_members.user_id", authData.user.id)
-          .limit(1)
-          .single();
+        let orgData = null;
+        try {
+          const { data, error } = await (supabase as any)
+            .from("organizations")
+            .select("*, org_members!inner(role)")
+            .eq("org_members.user_id", authData.user.id)
+            .limit(1)
+            .maybeSingle();
+          if (!error && data) {
+            orgData = data;
+          }
+        } catch (e) {
+          console.error("Failed to query organizations", e);
+        }
+
+        // Auto-create workspace if not found
+        if (!orgData) {
+          try {
+            const userFullName = authData.user.user_metadata?.full_name || authData.user.email?.split("@")[0] || "User";
+            const orgSlug = `${userFullName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Math.random().toString(36).substring(2, 8)}`;
+            
+            const { data: newOrg, error: createOrgErr } = await (supabase as any)
+              .from("organizations")
+              .insert({
+                name: `${userFullName}'s Workspace`,
+                slug: orgSlug,
+                owner_id: authData.user.id,
+              })
+              .select()
+              .single();
+
+            if (!createOrgErr && newOrg) {
+              await (supabase as any)
+                .from("org_members")
+                .insert({
+                  org_id: newOrg.id,
+                  user_id: authData.user.id,
+                  role: "owner",
+                  status: "active",
+                });
+              orgData = { ...newOrg, org_members: [{ role: "owner" }] };
+            }
+          } catch (createErr) {
+            console.error("Failed to auto-create workspace", createErr);
+          }
+        }
 
         if (orgData) {
           setOrg(orgData);
@@ -288,9 +352,14 @@ function Settings() {
           <h2 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
             <Key className="w-4 h-4 text-indigo-400" /> AI Provider API Keys
           </h2>
-          <p className="text-xs text-white/35 mb-5 leading-relaxed">
-            Connect your own API keys to enable <strong className="text-white/50">live prompt audits</strong> across AI search engines.
-            Without keys, audits run in simulation mode. Keys are stored securely per workspace in the database.
+          <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-emerald-500/[0.06] ring-1 ring-emerald-500/20">
+            <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">🎉 Start Free</span>
+            <p className="text-xs text-emerald-300/70">
+              Use <strong>Google Gemini</strong>, <strong>Groq</strong>, or <strong>OpenRouter</strong> — all have generous free tiers. No credit card needed.
+            </p>
+          </div>
+          <p className="text-xs text-white/35 mb-4 leading-relaxed">
+            Keys are stored securely per workspace in the database. Without keys, audits run in simulation mode.
           </p>
           <div className="space-y-3">
             {AI_PROVIDERS.map((provider) => {
@@ -311,7 +380,14 @@ function Settings() {
                     <div className="flex items-center gap-2.5">
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: provider.color }} />
                       <div>
-                        <div className="text-sm font-semibold text-white">{provider.label}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-semibold text-white">{provider.label}</div>
+                          {provider.isFree && (
+                            <span className="text-[9px] bg-emerald-500/15 text-emerald-400 font-bold px-1.5 py-0.5 rounded-full ring-1 ring-emerald-500/30 uppercase tracking-wider">
+                              FREE
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[10px] text-white/30">{provider.models}</div>
                       </div>
                     </div>

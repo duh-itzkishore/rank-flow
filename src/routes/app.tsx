@@ -95,18 +95,54 @@ function AppLayout() {
         fetchUnreadAlerts();
         
         // Fetch user organizations
-        const { data: orgData } = await (supabase as any)
-          .from("organizations")
-          .select("*, org_members!inner(role)")
-          .eq("org_members.user_id", data.user.id);
+        let orgsList = [];
+        try {
+          const { data: orgData } = await (supabase as any)
+            .from("organizations")
+            .select("*, org_members!inner(role)")
+            .eq("org_members.user_id", data.user.id);
+          orgsList = orgData || [];
+        } catch (e) {
+          console.error("Failed to query organizations", e);
+        }
         
-        setOrganizations(orgData || []);
+        if (orgsList.length === 0) {
+          try {
+            const userFullName = data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "User";
+            const orgSlug = `${userFullName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Math.random().toString(36).substring(2, 8)}`;
+            const { data: newOrg, error: createOrgErr } = await (supabase as any)
+              .from("organizations")
+              .insert({
+                name: `${userFullName}'s Workspace`,
+                slug: orgSlug,
+                owner_id: data.user.id,
+              })
+              .select()
+              .single();
+
+            if (!createOrgErr && newOrg) {
+              await (supabase as any)
+                .from("org_members")
+                .insert({
+                  org_id: newOrg.id,
+                  user_id: data.user.id,
+                  role: "owner",
+                  status: "active",
+                });
+              orgsList = [{ ...newOrg, org_members: [{ role: "owner" }] }];
+            }
+          } catch (createErr) {
+            console.error("Failed to auto-create organization", createErr);
+          }
+        }
+        
+        setOrganizations(orgsList);
         const savedOrg = localStorage.getItem("active_org_id");
-        if (savedOrg && orgData?.some((o: any) => o.id === savedOrg)) {
+        if (savedOrg && orgsList.some((o: any) => o.id === savedOrg)) {
           setActiveOrgId(savedOrg);
-        } else if (orgData && orgData.length > 0) {
-          setActiveOrgId(orgData[0].id);
-          localStorage.setItem("active_org_id", orgData[0].id);
+        } else if (orgsList.length > 0) {
+          setActiveOrgId(orgsList[0].id);
+          localStorage.setItem("active_org_id", orgsList[0].id);
         }
       }
       setChecked(true);
