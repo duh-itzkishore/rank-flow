@@ -159,6 +159,27 @@ export const Route = createFileRoute("/api/prompt-audit")({
                   metadata: { model, prompt: promptText, brand: brandName },
                 });
               }
+
+              // 4. Hallucination alert hook
+              if (result.confidenceScore !== undefined && result.confidenceScore < 0.65) {
+                await (supabase as any)
+                  .from("prompt_runs")
+                  .update({
+                    hallucination_detected: true,
+                    hallucination_details: { pattern: "low_confidence", excerpt: result.responseText.slice(0, 100) + "...", severity: "high" }
+                  })
+                  .eq("id", runData.id);
+
+                alertsToCreate.push({
+                  user_id: userId,
+                  project_id: projectId,
+                  prompt_run_id: runData.id,
+                  type: "hallucination",
+                  severity: "danger",
+                  message: `⚠️ Potential hallucination detected on ${model.charAt(0).toUpperCase() + model.slice(1)} for: "${promptText}". Confidence score: ${result.confidenceScore}`,
+                  metadata: { model, prompt: promptText, confidence: result.confidenceScore },
+                });
+              }
             } else if (runErr) {
               console.error(`Error inserting run for ${model}:`, runErr);
             }

@@ -4,11 +4,12 @@ import { useEffect, useState, useCallback } from "react";
 import {
   LayoutDashboard, FolderOpen, MessageSquare, Bot, Trophy, AtSign,
   Target, BarChart3, FileText, Bell, Users, Plug, CreditCard, Settings,
-  Search, LogOut, Sparkles, ChevronRight, ShieldCheck,
+  Search, LogOut, Sparkles, ChevronRight, ShieldCheck, CheckCheck
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Logo } from "@/components/landing/Logo";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -43,6 +44,8 @@ function AppLayout() {
   const [checked, setChecked] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [alerts, setAlerts] = useState<any[]>([]);
 
   const fetchUnreadAlerts = useCallback(async () => {
     const { count } = await (supabase as any)
@@ -51,6 +54,30 @@ function AppLayout() {
       .eq("is_read", false);
     setUnreadAlerts(count || 0);
   }, []);
+
+  const fetchAlertsList = async () => {
+    try {
+      const { data } = await (supabase as any)
+        .from("alerts")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(8);
+      setAlerts(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      await (supabase as any).from("alerts").update({ is_read: true }).eq("is_read", false);
+      setUnreadAlerts(0);
+      setAlerts(alerts.map((a) => ({ ...a, is_read: true })));
+      toast.success("All notifications marked as read");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -214,17 +241,58 @@ function AppLayout() {
               className="h-9 w-full rounded-lg bg-white/[0.04] border border-white/5 pl-9 pr-4 text-sm text-white/80 placeholder-white/25 outline-none focus:border-indigo-500/40 transition-colors"
             />
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            <Link
-              to="/app/alerts"
-              onClick={fetchUnreadAlerts}
+          <div className="ml-auto flex items-center gap-2 relative">
+            <button
+              onClick={async () => {
+                const nextState = !showNotifications;
+                setShowNotifications(nextState);
+                if (nextState) {
+                  await fetchAlertsList();
+                }
+              }}
               className="relative rounded-lg p-2 text-white/40 hover:bg-white/[0.04] hover:text-white/70 transition-colors"
             >
               <Bell className="h-4 w-4" />
               {unreadAlerts > 0 && (
-                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
+                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
               )}
-            </Link>
+            </button>
+
+            {showNotifications && (
+              <div className="absolute right-0 top-10 z-50 w-80 rounded-2xl bg-[#1a1a1c] border border-white/5 p-4 shadow-2xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <span className="text-xs font-semibold text-white">Notifications ({unreadAlerts})</span>
+                  {unreadAlerts > 0 && (
+                    <button
+                      onClick={markAllRead}
+                      className="inline-flex items-center gap-1 text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold"
+                    >
+                      <CheckCheck className="w-3 h-3" /> Mark all read
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-2 max-h-60 overflow-y-auto mockup-scroll pr-1">
+                  {alerts.map((a) => (
+                    <div
+                      key={a.id}
+                      className={`p-2.5 rounded-xl border text-[11px] leading-relaxed transition-colors ${
+                        a.is_read
+                          ? "bg-white/[0.01] border-white/5 text-white/40"
+                          : "bg-indigo-500/5 border-indigo-500/10 text-white/80"
+                      }`}
+                    >
+                      <div>{a.message}</div>
+                      <div className="text-[9px] text-white/20 mt-1">
+                        {new Date(a.created_at).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  ))}
+                  {alerts.length === 0 && (
+                    <div className="text-center text-xs text-white/30 py-6">No notifications found</div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
