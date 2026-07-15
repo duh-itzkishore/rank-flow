@@ -43,6 +43,8 @@ function AppLayout() {
   const [user, setUser] = useState<{ email?: string; name?: string } | null>(null);
   const [checked, setChecked] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [activeOrgId, setActiveOrgId] = useState<string>("");
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -81,7 +83,7 @@ function AppLayout() {
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (!mounted) return;
       if (!data.user) {
         navigate({ to: "/auth", replace: true });
@@ -91,6 +93,21 @@ function AppLayout() {
           name: (data.user.user_metadata?.full_name as string) || data.user.email?.split("@")[0],
         });
         fetchUnreadAlerts();
+        
+        // Fetch user organizations
+        const { data: orgData } = await (supabase as any)
+          .from("organizations")
+          .select("*, org_members!inner(role)")
+          .eq("org_members.user_id", data.user.id);
+        
+        setOrganizations(orgData || []);
+        const savedOrg = localStorage.getItem("active_org_id");
+        if (savedOrg && orgData?.some((o: any) => o.id === savedOrg)) {
+          setActiveOrgId(savedOrg);
+        } else if (orgData && orgData.length > 0) {
+          setActiveOrgId(orgData[0].id);
+          localStorage.setItem("active_org_id", orgData[0].id);
+        }
       }
       setChecked(true);
     });
@@ -241,6 +258,27 @@ function AppLayout() {
               className="h-9 w-full rounded-lg bg-white/[0.04] border border-white/5 pl-9 pr-4 text-sm text-white/80 placeholder-white/25 outline-none focus:border-indigo-500/40 transition-colors"
             />
           </div>
+          
+          {/* Org Switcher */}
+          {organizations.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Workspace:</span>
+              <select
+                value={activeOrgId}
+                onChange={(e) => {
+                  setActiveOrgId(e.target.value);
+                  localStorage.setItem("active_org_id", e.target.value);
+                  window.location.reload();
+                }}
+                className="rounded-lg bg-white/[0.04] border border-white/5 px-2 py-1 text-xs text-white outline-none focus:border-indigo-500/40 transition-colors"
+              >
+                {organizations.map((org) => (
+                  <option key={org.id} value={org.id} className="bg-[#1e1e21]">{org.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          
           <div className="ml-auto flex items-center gap-2 relative">
             <button
               onClick={async () => {

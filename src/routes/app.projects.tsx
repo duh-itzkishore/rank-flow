@@ -31,10 +31,12 @@ function Projects() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        const { data, error } = await supabase
-          .from("projects")
-          .select("*")
-          .order("created_at", { ascending: false });
+        const activeOrgId = localStorage.getItem("active_org_id");
+        let query = (supabase as any).from("projects").select("*");
+        if (activeOrgId) {
+          query = query.eq("org_id", activeOrgId);
+        }
+        const { data, error } = await query.order("created_at", { ascending: false });
 
         if (error) throw error;
         setProjects(data || []);
@@ -60,7 +62,8 @@ function Projects() {
 
     try {
       setSubmitting(true);
-      const { data, error } = await supabase
+      const activeOrgId = localStorage.getItem("active_org_id");
+      const { data, error } = await (supabase as any)
         .from("projects")
         .insert({
           name: name.trim(),
@@ -68,6 +71,7 @@ function Projects() {
           website: website.trim() || null,
           description: description.trim() || null,
           user_id: userId,
+          org_id: activeOrgId || null
         })
         .select()
         .single();
