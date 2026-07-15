@@ -218,6 +218,9 @@ function Prompts() {
                 toast.error("Please create a project first before creating a prompt.");
                 return;
               }
+              setText("");
+              setParentPromptId(null);
+              setFrequency("manual");
               setIsModalOpen(true);
             }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors cursor-pointer"
