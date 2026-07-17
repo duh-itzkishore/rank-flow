@@ -2,8 +2,11 @@ import { createFileRoute, useParams, useNavigate } from "@tanstack/react-router"
 import { useEffect, useState } from "react";
 import {
   Plus, Loader2, X, AlertCircle, Search, ChevronDown, Download,
-  Columns3, Flag, Tag, Filter, Play, Globe, ArrowUpRight, ArrowDownRight,
+  Columns3, Flag, Tag, Filter, Play, Globe, ArrowUpRight, ArrowDownRight, ArrowLeft, Sparkles,
 } from "lucide-react";
+import {
+  AreaChart, Area, LineChart, Line, ResponsiveContainer,
+} from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -182,6 +185,304 @@ function Prompts() {
   const project = projects.find(p => p.id === projectId);
 
   /* ─── Render ─────────────────────────────────────────────────────── */
+  if (selectedPrompt) {
+    return (
+      <div className="mx-auto max-w-7xl space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.07] pb-5">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSelectedPrompt(null)}
+              className="rounded-lg bg-white/5 p-2 text-white/40 hover:text-white/70 transition-colors"
+              aria-label="Back to prompts"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-white/30">Prompt</span>
+                <span className="text-white/20 text-[10px]">#{selectedPrompt.id.slice(0, 6)}</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-base font-semibold text-white leading-snug">{selectedPrompt.text}</h2>
+                <span className="flex items-center gap-1 cursor-pointer rounded bg-orange-500/10 px-2 py-0.5 text-[9px] font-bold text-orange-400 uppercase tracking-wider border border-orange-500/20">
+                  Commercial <ChevronDown className="w-2.5 h-2.5" />
+                </span>
+                <span className="flex items-center gap-1 cursor-pointer rounded bg-indigo-500/10 px-2 py-0.5 text-[9px] font-bold text-indigo-400 uppercase tracking-wider border border-indigo-500/20">
+                  Own Brand <ChevronDown className="w-2.5 h-2.5" />
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/15">
+              <Sparkles className="w-3.5 h-3.5" /> Create Content
+            </button>
+          </div>
+        </div>
+
+        {/* Filters Bar */}
+        <div className="flex items-center gap-3 border-b border-white/[0.07] pb-4 flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+            <input
+              placeholder="Search responses..."
+              className="h-8 rounded-lg border border-white/10 bg-white/[0.04] pl-8 pr-3 text-xs text-white placeholder-white/30 outline-none focus:border-indigo-500/40 transition-colors w-52"
+            />
+          </div>
+          <FilterPill label="Last 30 days" />
+          <FilterPill label="All Models (4)" />
+        </div>
+
+        {/* KPI Strip */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-px bg-white/[0.07] rounded-xl overflow-hidden border border-white/[0.07]">
+          {[
+            { label: "Responses", value: String(selectedPrompt.prompt_runs?.length || 0) },
+            { label: "Country", value: "🇺🇸 USA" },
+            { label: "Language", value: "English" },
+            { label: "Last Execution", value: lastMention(selectedPrompt) !== "-" ? lastMention(selectedPrompt) : "17 Jul 2026" },
+            { label: "Creation Date", value: new Date(selectedPrompt.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) },
+          ].map(kpi => (
+            <div key={kpi.label} className="bg-[#1a1a1c] px-4 py-3.5">
+              <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold mb-1">{kpi.label}</div>
+              <div className="text-xs font-semibold text-white/80">{kpi.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sparkline Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Brand Mentions */}
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 flex flex-col justify-between h-[110px]">
+            <div>
+              <div className="text-[10px] font-bold text-white/30 uppercase tracking-wider">Brand Mentions</div>
+              <div className="text-xl font-bold text-white mt-1 flex items-baseline gap-2">
+                {citCount(selectedPrompt)}
+                <span className="text-[10px] text-emerald-400 font-semibold flex items-center">
+                  <ArrowUpRight className="w-3 h-3" /> +1 vs 30 days ago
+                </span>
+              </div>
+            </div>
+            <div className="w-full h-8">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={[1, 2, 1, 3, 2, 4, 3].map((v, i) => ({ v, i }))}>
+                  <defs>
+                    <linearGradient id="grad-blue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="v" stroke="#3b82f6" strokeWidth={1.5} fill="url(#grad-blue)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Card 2: Mention Rate */}
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 flex flex-col justify-between h-[110px]">
+            <div>
+              <div className="text-[10px] font-bold text-white/30 uppercase tracking-wider">Mention Rate</div>
+              <div className="text-xl font-bold text-white mt-1 flex items-baseline gap-2">
+                {mentionRate(selectedPrompt)}%
+                <span className="text-[10px] text-emerald-400 font-semibold flex items-center">
+                  0.0% vs 30 days ago
+                </span>
+              </div>
+            </div>
+            <div className="w-full h-8">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={[50, 60, 50, 70, 60, 80, 70].map((v, i) => ({ v, i }))}>
+                  <defs>
+                    <linearGradient id="grad-green" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="v" stroke="#10b981" strokeWidth={1.5} fill="url(#grad-green)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Card 3: Citations */}
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 flex flex-col justify-between h-[110px]">
+            <div>
+              <div className="text-[10px] font-bold text-white/30 uppercase tracking-wider">Citations</div>
+              <div className="text-xl font-bold text-white mt-1 flex items-baseline gap-2">
+                {citCount(selectedPrompt) * 2}
+                <span className="text-[10px] text-red-400 font-semibold flex items-center">
+                  <ArrowDownRight className="w-3 h-3" /> -1 vs 30 days ago
+                </span>
+              </div>
+            </div>
+            <div className="w-full h-8">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={[2, 4, 3, 5, 2, 6, 4].map((v, i) => ({ v, i }))}>
+                  <Line type="monotone" dataKey="v" stroke="#3b82f6" strokeWidth={1.5} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Card 4: Position */}
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 flex flex-col justify-between h-[110px]">
+            <div>
+              <div className="text-[10px] font-bold text-white/30 uppercase tracking-wider">Position</div>
+              <div className="text-xl font-bold text-white mt-1 flex items-baseline gap-2">
+                {avgRank(selectedPrompt) || "—"}
+                <span className="text-[10px] text-emerald-400 font-semibold flex items-center">
+                  <ArrowUpRight className="w-3 h-3" /> +0.9 vs 30 days ago
+                </span>
+              </div>
+            </div>
+            <div className="w-full h-8">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={[3, 2, 2.5, 1.8, 2.2, 1.5, 1.5].map((v, i) => ({ v, i }))}>
+                  <Line type="monotone" dataKey="v" stroke="#f59e0b" strokeWidth={1.5} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Table Container */}
+        <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
+          {/* Tabs */}
+          <div className="flex gap-1 px-5 pt-3 border-b border-white/[0.07] bg-white/[0.01]">
+            <button className="px-4 py-2 text-xs font-semibold border-b-2 -mb-px border-indigo-500 text-indigo-400 transition-colors">
+              Responses
+            </button>
+            <button className="px-4 py-2 text-xs font-medium border-b-2 border-transparent text-white/40 hover:text-white/70 -mb-px">
+              By Page
+            </button>
+          </div>
+
+          {/* Responses list */}
+          {loadingRuns ? (
+            <div className="flex items-center justify-center py-12 text-white/30 text-sm gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+              Loading responses…
+            </div>
+          ) : promptRuns.length === 0 ? (
+            <div className="text-center py-16 text-white/30 text-sm">
+              No responses yet. Click <strong className="text-white/50">Run</strong> to audit this prompt.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-[11px] border-collapse">
+                <thead>
+                  <tr className="text-white/30 font-semibold uppercase tracking-wider text-[9px] border-b border-white/[0.07] bg-white/[0.005]">
+                    <th className="text-left py-3 px-4 w-[280px]">Response</th>
+                    <th className="text-left py-3 px-3">Model</th>
+                    <th className="text-left py-3 px-3">Status</th>
+                    <th className="text-left py-3 px-3">Brand Sentiment</th>
+                    <th className="text-left py-3 px-3">Mention Position</th>
+                    <th className="text-left py-3 px-3">Top Mentions</th>
+                    <th className="text-left py-3 px-3">Citation Position</th>
+                    <th className="text-left py-3 px-3">Top Citations</th>
+                    <th className="text-left py-3 px-3">Execution Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {promptRuns.map(run => {
+                    // Map model strings to formatted labels + icons
+                    const modelMap: Record<string, { label: string, color: string }> = {
+                      chatgpt: { label: "ChatGPT", color: "text-orange-400" },
+                      claude: { label: "Claude", color: "text-amber-500" },
+                      gemini: { label: "Gemini", color: "text-blue-400" },
+                      perplexity: { label: "Perplexity", color: "text-teal-400" },
+                      groq: { label: "Groq", color: "text-red-400" },
+                      openrouter: { label: "OpenRouter", color: "text-indigo-400" },
+                    };
+                    const modelMeta = modelMap[run.model.toLowerCase()] || { label: run.model, color: "text-white/70" };
+
+                    return (
+                      <tr key={run.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-4 max-w-[280px]">
+                          <span className="text-white/80 line-clamp-2 leading-snug">
+                            {run.response_text}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 font-medium">
+                          <span className={`${modelMeta.color} flex items-center gap-1.5`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            {modelMeta.label}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                            run.is_mentioned
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              : "bg-red-500/10 text-red-400 border border-red-500/20"
+                          }`}>
+                            {run.is_mentioned ? "Success" : "Not Found"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                            run.is_mentioned 
+                              ? "bg-emerald-500/10 text-emerald-400" 
+                              : "bg-white/[0.04] text-white/50"
+                          }`}>
+                            {run.is_mentioned ? "Very Positive" : "Neutral"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          {run.rank ? (
+                            <span className="rounded bg-indigo-500/10 text-indigo-400 px-2 py-0.5 text-[9.5px] font-bold border border-indigo-500/20">
+                              Position {run.rank}
+                            </span>
+                          ) : (
+                            <span className="text-white/20">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-1">
+                            {run.is_mentioned ? (
+                              <>
+                                <span className="w-5 h-5 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[8px] font-bold text-white uppercase" title="Nike">N</span>
+                                <span className="w-5 h-5 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-[8px] text-white/40 uppercase" title="Adidas">A</span>
+                                <span className="w-5 h-5 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-[8px] text-white/40 uppercase" title="Hoka">H</span>
+                              </>
+                            ) : (
+                              <span className="text-white/20">—</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3">
+                          {run.rank ? (
+                            <span className="rounded bg-emerald-500/10 text-emerald-400 px-2 py-0.5 text-[9.5px] font-bold border border-emerald-500/20">
+                              Position {run.rank + 1}
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-1">
+                            {run.is_mentioned ? (
+                              <>
+                                <span className="w-5 h-5 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-[8px] font-bold text-orange-400 uppercase" title="Reddit">R</span>
+                                <span className="w-5 h-5 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[8px] font-bold text-blue-400 uppercase" title="Wikipedia">W</span>
+                              </>
+                            ) : (
+                              <span className="text-white/20">—</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-white/40 whitespace-nowrap">
+                          {new Date(run.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-7xl space-y-4">
       {/* ── Page header ─────────────────────────────────────────────── */}
@@ -381,186 +682,7 @@ function Prompts() {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════
-          PROMPT DETAIL DRAWER  (Image 2 reference)
-      ══════════════════════════════════════════════════════════════════ */}
-      {selectedPrompt && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-3xl bg-[#141416] border-l border-white/10 h-full flex flex-col shadow-2xl">
-            {/* Header */}
-            <div className="flex items-start justify-between p-5 border-b border-white/[0.07] gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-white/30">Prompt</span>
-                  <span className="text-white/20 text-[10px]">#{selectedPrompt.id.slice(0, 6)}</span>
-                </div>
-                <h2 className="text-base font-semibold text-white leading-snug">{selectedPrompt.text}</h2>
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <span className="rounded-full bg-emerald-500/15 text-emerald-400 px-2.5 py-0.5 text-[10px] font-semibold">
-                    Gemeos
-                  </span>
-                  <span className="rounded-full bg-white/[0.06] text-white/50 px-2.5 py-0.5 text-[10px] font-semibold">
-                    Own World
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button className="rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors">
-                  Create content
-                </button>
-                <button
-                  onClick={() => setSelectedPrompt(null)}
-                  className="rounded-lg bg-white/5 p-2 text-white/40 hover:text-white/70 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
 
-            {/* Filter bar */}
-            <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.07] flex-wrap">
-              <FilterPill label="Last 30 days" />
-              <FilterPill label="All Models" />
-            </div>
-
-            {/* KPI row */}
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-px bg-white/[0.05] border-b border-white/[0.07]">
-              {[
-                { label: "Responses", value: String(selectedPrompt.prompt_runs?.length || 0) },
-                { label: "Country", value: "🇺🇸 USA" },
-                { label: "Language", value: "English" },
-                { label: "Last Mention", value: lastMention(selectedPrompt) },
-                { label: "Creation Date", value: new Date(selectedPrompt.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) },
-              ].map(kpi => (
-                <div key={kpi.label} className="bg-[#141416] px-4 py-3">
-                  <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold mb-1">{kpi.label}</div>
-                  <div className="text-sm font-semibold text-white/80">{kpi.value}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Mention rate highlight */}
-            <div className="px-5 py-4 border-b border-white/[0.07] flex items-center gap-8 flex-wrap">
-              <div>
-                <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold mb-1">Mention Rate</div>
-                <div className="text-3xl font-bold text-white">
-                  {mentionRate(selectedPrompt)}.0%
-                  <span className="text-sm font-normal text-red-400 ml-2">
-                    −3.9% vs 30 days ago
-                  </span>
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold mb-1">Brand Positions</div>
-                <div className="text-2xl font-bold text-white">
-                  {avgRank(selectedPrompt) || "—"}
-                  <span className="text-sm font-normal text-white/40 ml-2">vs 30 days ago</span>
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold mb-1">Citations</div>
-                <div className="text-2xl font-bold text-white">
-                  {citCount(selectedPrompt)}
-                  <span className="text-sm font-normal text-emerald-400 ml-2">+3.5 vs 30 days ago</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-1 px-5 pt-4 border-b border-white/[0.07]">
-              {["Responses", "By Page"].map(t => (
-                <button key={t} className="px-4 py-2 text-xs font-semibold border-b-2 -mb-px border-indigo-500 text-indigo-400 transition-colors">
-                  {t}
-                </button>
-              )).slice(0, 1)}
-              <button className="px-4 py-2 text-xs font-medium border-b-2 border-transparent text-white/40 hover:text-white/70 -mb-px">By Page</button>
-            </div>
-
-            {/* Responses table */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="px-5 py-3 border-b border-white/[0.05]">
-                <p className="text-[11px] text-white/30">
-                  All AI responses for this prompt with visibility and citation data.
-                </p>
-              </div>
-
-              {loadingRuns ? (
-                <div className="flex items-center justify-center py-12 text-white/30 text-sm gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
-                  Loading responses…
-                </div>
-              ) : promptRuns.length === 0 ? (
-                <div className="text-center py-16 text-white/30 text-sm">
-                  No responses yet. Click <strong className="text-white/50">Run</strong> to audit this prompt.
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[11px]">
-                    <thead>
-                      <tr className="text-white/25 font-semibold uppercase tracking-wider text-[9px] border-b border-white/[0.05]">
-                        <th className="text-left py-2.5 px-4">Response</th>
-                        <th className="text-left py-2.5 px-3">Model</th>
-                        <th className="text-left py-2.5 px-3">Status</th>
-                        <th className="text-left py-2.5 px-3">Overall Sentiment</th>
-                        <th className="text-left py-2.5 px-3">Mention Position</th>
-                        <th className="text-left py-2.5 px-3">Citation Position</th>
-                        <th className="text-left py-2.5 px-3">Execution Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {promptRuns.map(run => (
-                        <tr key={run.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
-                          <td className="py-2.5 px-4 max-w-[200px]">
-                            <span className="text-white/60 line-clamp-2 leading-snug">
-                              {run.response_text?.slice(0, 80)}…
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-3">
-                            <span className="capitalize text-white/70 font-medium">{run.model}</span>
-                          </td>
-                          <td className="py-2.5 px-3">
-                            <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
-                              run.is_mentioned
-                                ? "bg-emerald-500/15 text-emerald-400"
-                                : "bg-red-500/15 text-red-400"
-                            }`}>
-                              {run.is_mentioned ? "Success" : "Not Found"}
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-3">
-                            <span className="text-emerald-400 text-[10px] font-semibold">
-                              {run.is_mentioned ? "Very Positive" : "Neutral"}
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-3">
-                            {run.rank ? (
-                              <span className="rounded-full bg-indigo-500/15 text-indigo-400 px-2 py-0.5 text-[9px] font-semibold">
-                                Position {run.rank}
-                              </span>
-                            ) : (
-                              <span className="text-white/25">—</span>
-                            )}
-                          </td>
-                          <td className="py-2.5 px-3 text-white/30">
-                            {run.rank ? (
-                              <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[9px]">
-                                Position {run.rank + 1}
-                              </span>
-                            ) : "—"}
-                          </td>
-                          <td className="py-2.5 px-3 text-white/30 whitespace-nowrap">
-                            {new Date(run.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Add Prompt Modal ─────────────────────────────────────────── */}
       {isModalOpen && (
