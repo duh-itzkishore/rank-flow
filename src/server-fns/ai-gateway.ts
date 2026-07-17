@@ -475,11 +475,6 @@ async function getSimulatedFallback(
   // Try Wikipedia search first with cleanPrompt + brandName
   let searchResults = await fetchWikipediaResults(`${cleanPrompt} ${brandName}`);
   let sourceName = "Wikipedia";
-
-  // If Wikipedia search returned nothing, try with just the prompt
-  if (searchResults.length === 0) {
-    searchResults = await fetchWikipediaResults(cleanPrompt);
-  }
   
   // If still nothing, check if SerpApi key exists
   const serpApiKey = process.env.SERPAPI_API_KEY;

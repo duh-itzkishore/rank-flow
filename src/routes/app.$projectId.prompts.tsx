@@ -57,6 +57,10 @@ function Prompts() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"tracked" | "suggested">("tracked");
 
+  // Suggested Prompts State
+  const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [text, setText] = useState("");
@@ -154,6 +158,51 @@ function Prompts() {
       setPromptRuns(data || []);
     } catch { setPromptRuns([]); }
     finally { setLoadingRuns(false); }
+  }
+
+  async function loadSuggestions() {
+    if (suggestedPrompts.length > 0) return;
+    setLoadingSuggestions(true);
+    try {
+      const res = await fetch("/api/generate-prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuggestedPrompts(data.prompts || []);
+      } else {
+        toast.error(data.error || "Failed to load suggestions");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load suggestions");
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === "suggested") {
+      loadSuggestions();
+    }
+  }, [activeTab]);
+
+  async function trackSuggestedPrompt(promptText: string) {
+    if (!userId) return;
+    try {
+      const { data: newP, error } = await (supabase as any)
+        .from("prompts")
+        .insert({ text: promptText, project_id: projectId, status: "active", user_id: userId })
+        .select().single();
+      if (error) throw error;
+      
+      toast.success("Prompt tracked!");
+      setSuggestedPrompts(prev => prev.filter(p => p !== promptText));
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to track prompt");
+    }
   }
 
   /* ─── Derived values ─────────────────────────────────────────────── */
@@ -557,14 +606,57 @@ function Prompts() {
 
       {/* ── Sub-header ───────────────────────────────────────────────── */}
       <div>
-        <h2 className="text-sm font-semibold text-white/80">Tracked Prompts</h2>
+        <h2 className="text-sm font-semibold text-white/80">
+          {activeTab === "tracked" ? "Tracked Prompts" : "Suggested Prompts"}
+        </h2>
         <p className="text-xs text-white/40 mt-0.5">
-          All prompts tracked for your project with visibility and citation metrics
+          {activeTab === "tracked" 
+            ? "All prompts tracked for your project with visibility and citation metrics"
+            : "AI-generated prompts based on your brand to help discover visibility opportunities"}
         </p>
       </div>
 
-      {/* ── Table ─────────────────────────────────────────────────────── */}
-      {loading ? (
+      {/* ── Content Area ─────────────────────────────────────────────────────── */}
+      {activeTab === "suggested" ? (
+        loadingSuggestions ? (
+          <div className="flex items-center justify-center py-16 text-white/40 text-sm gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+            Generating AI suggestions…
+          </div>
+        ) : suggestedPrompts.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.01] p-12 text-center">
+            <AlertCircle className="w-10 h-10 text-white/20 mx-auto mb-4" />
+            <h3 className="text-sm font-semibold text-white">No suggestions available</h3>
+            <p className="mt-1 text-xs text-white/40 max-w-sm mx-auto leading-relaxed">
+              We couldn't generate new suggestions right now.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {suggestedPrompts.map((suggestion, idx) => (
+              <div key={idx} className="flex items-start justify-between gap-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-4 h-4 text-indigo-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-white/90 leading-snug">{suggestion}</h3>
+                    <p className="text-xs text-white/40 mt-1">High potential for brand visibility discovery.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => trackSuggestedPrompt(suggestion)}
+                  className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-600 transition-colors shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Track
+                </button>
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+      /* ── Table ─────────────────────────────────────────────────────── */
+      loading ? (
         <div className="flex items-center justify-center py-16 text-white/40 text-sm gap-2">
           <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
           Loading prompts…
@@ -680,8 +772,8 @@ function Prompts() {
             </tbody>
           </table>
         </div>
+      )
       )}
-
 
 
       {/* ── Add Prompt Modal ─────────────────────────────────────────── */}

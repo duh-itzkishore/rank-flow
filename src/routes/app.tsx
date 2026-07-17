@@ -295,7 +295,9 @@ function AppLayout() {
                 value={projectId || ""}
                 onChange={(e) => {
                   const val = e.target.value;
-                  if (val) {
+                  if (val === "manage_projects") {
+                    navigate({ to: "/app/projects" });
+                  } else if (val) {
                     navigate({ to: `/app/${val}` });
                   } else {
                     navigate({ to: "/app/dashboard" });
@@ -307,6 +309,9 @@ function AppLayout() {
                 {projects.map(p => (
                   <option key={p.id} value={p.id} className="bg-[#1e1e21]">{p.name}</option>
                 ))}
+                <option value="manage_projects" className="bg-[#1e1e21] text-indigo-400 font-semibold">
+                  + Create / Manage Projects
+                </option>
               </select>
             </div>
           )}
