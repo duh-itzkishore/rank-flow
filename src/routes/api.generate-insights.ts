@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { generateProjectInsights } from "@/server/insights-engine";
+import { generateProjectInsights } from "@/server-fns/insights-engine";
 
 export const Route = createFileRoute("/api/generate-insights")({
   server: {

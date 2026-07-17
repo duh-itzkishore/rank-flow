@@ -1,3 +1,4 @@
+
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus, Trash2, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -28,14 +29,16 @@ function Team() {
         if (!authData.user) return;
         setUser(authData.user);
 
-        // Get user org
-        const { data: orgs } = await (supabase as any).from('organizations')
-          .select('*, org_members!inner(role, status)')
-          .eq('org_members.user_id', authData.user.id)
-          .limit(1);
+        // Get user org (two-step: memberships → org)
+        const { data: memberRow } = await (supabase as any).from('org_members')
+          .select('org_id, role')
+          .eq('user_id', authData.user.id)
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle();
 
-        if (orgs && orgs.length > 0) {
-          const currentOrgId = orgs[0].id;
+        if (memberRow?.org_id) {
+          const currentOrgId = memberRow.org_id;
           setOrgId(currentOrgId);
 
           // Fetch members and invites
@@ -45,6 +48,7 @@ function Team() {
           setMembers(memberData || []);
           setInvites(inviteData || []);
         }
+
       } catch (err) {
         console.error("Error loading team", err);
       } finally {

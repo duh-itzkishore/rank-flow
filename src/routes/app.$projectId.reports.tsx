@@ -8,7 +8,7 @@ import {
   CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts";
 
-export const Route = createFileRoute("/app/reports")({
+export const Route = createFileRoute("/app/$projectId/reports")({
   component: Reports,
 });
 

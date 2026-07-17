@@ -7,7 +7,7 @@ import { TrendingUp, TrendingDown, Plus, Loader2, X, Target, ChevronDown, Zap, E
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/competitors")({
+export const Route = createFileRoute("/app/$projectId/competitors")({
   component: Competitors,
 });
 

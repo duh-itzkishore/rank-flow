@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { queryAIModel } from "@/server/ai-gateway";
+import { queryAIModel } from "@/server-fns/ai-gateway";
 
 export const Route = createFileRoute("/api/prompt-audit")({
   server: {

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip } from "recharts";
 
-export const Route = createFileRoute("/app/models")({
+export const Route = createFileRoute("/app/$projectId/models")({
   component: AIModels,
 });
 

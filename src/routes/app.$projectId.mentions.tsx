@@ -4,7 +4,7 @@ import { Filter, Check, X, Loader2, AlertTriangle, ChevronDown, RefreshCw, AtSig
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/mentions")({
+export const Route = createFileRoute("/app/$projectId/mentions")({
   component: Mentions,
 });
 

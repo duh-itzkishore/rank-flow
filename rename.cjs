@@ -1,0 +1,1 @@
+﻿const fs = require('fs'); const path = require('path'); const routesDir = path.join(__dirname, 'src', 'routes'); const files = fs.readdirSync(routesDir); files.forEach(f => { if (f.startsWith('app..')) { const nf = f.replace('app..', 'app.$projectId.'); fs.renameSync(path.join(routesDir, f), path.join(routesDir, nf)); } }); console.log('Renamed');

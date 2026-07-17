@@ -103,18 +103,28 @@ function Settings() {
 
         let orgData = null;
         try {
-          const { data, error } = await (supabase as any)
-            .from("organizations")
-            .select("*, org_members!inner(role)")
-            .eq("org_members.user_id", authData.user.id)
+          const { data: memberRow } = await (supabase as any)
+            .from("org_members")
+            .select("org_id, role")
+            .eq("user_id", authData.user.id)
+            .eq("status", "active")
             .limit(1)
             .maybeSingle();
-          if (!error && data) {
-            orgData = data;
+
+          if (memberRow?.org_id) {
+            const { data: foundOrg, error } = await (supabase as any)
+              .from("organizations")
+              .select("*")
+              .eq("id", memberRow.org_id)
+              .single();
+            if (!error && foundOrg) {
+              orgData = { ...foundOrg, org_members: [{ role: memberRow.role }] };
+            }
           }
         } catch (e) {
           console.error("Failed to query organizations", e);
         }
+
 
         // Auto-create workspace if not found
         if (!orgData) {

@@ -16,25 +16,35 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppTeamRouteImport } from './routes/app.team'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
-import { Route as AppSeoAuditRouteImport } from './routes/app.seo-audit'
-import { Route as AppReportsRouteImport } from './routes/app.reports'
-import { Route as AppRankingsRouteImport } from './routes/app.rankings'
-import { Route as AppPromptsRouteImport } from './routes/app.prompts'
 import { Route as AppProjectsRouteImport } from './routes/app.projects'
-import { Route as AppModelsRouteImport } from './routes/app.models'
-import { Route as AppMentionsRouteImport } from './routes/app.mentions'
 import { Route as AppIntegrationsRouteImport } from './routes/app.integrations'
-import { Route as AppInsightsRouteImport } from './routes/app.insights'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
-import { Route as AppCompetitorsRouteImport } from './routes/app.competitors'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
-import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppAlertsRouteImport } from './routes/app.alerts'
 import { Route as ApiSeoAuditRouteImport } from './routes/api.seo-audit'
 import { Route as ApiRunScheduledPromptsRouteImport } from './routes/api.run-scheduled-prompts'
 import { Route as ApiPromptAuditRouteImport } from './routes/api.prompt-audit'
 import { Route as ApiGenerateInsightsRouteImport } from './routes/api.generate-insights'
+import { Route as AppProjectIdIndexRouteImport } from './routes/app.$projectId.index'
+import { Route as AppProjectIdSeoAuditRouteImport } from './routes/app.$projectId.seo-audit'
+import { Route as AppProjectIdResponsesRouteImport } from './routes/app.$projectId.responses'
+import { Route as AppProjectIdReportsRouteImport } from './routes/app.$projectId.reports'
+import { Route as AppProjectIdRankingsRouteImport } from './routes/app.$projectId.rankings'
+import { Route as AppProjectIdPromptsRouteImport } from './routes/app.$projectId.prompts'
+import { Route as AppProjectIdModelsRouteImport } from './routes/app.$projectId.models'
+import { Route as AppProjectIdMentionsRouteImport } from './routes/app.$projectId.mentions'
+import { Route as AppProjectIdInsightsRouteImport } from './routes/app.$projectId.insights'
+import { Route as AppProjectIdCompetitorsRouteImport } from './routes/app.$projectId.competitors'
+import { Route as AppProjectIdCitationsRouteImport } from './routes/app.$projectId.citations'
+import { Route as AppProjectIdAnalyticsRouteImport } from './routes/app.$projectId.analytics'
 import { Route as ApiLlmsTxtProjectIdRouteImport } from './routes/api.llms-txt.$projectId'
+import { Route as AppProjectIdToolsResearchRouteImport } from './routes/app.$projectId.tools.research'
+import { Route as AppProjectIdToolsAnnotationsRouteImport } from './routes/app.$projectId.tools.annotations'
+import { Route as AppProjectIdReportsShoppingRouteImport } from './routes/app.$projectId.reports.shopping'
+import { Route as AppProjectIdReportsSentimentRouteImport } from './routes/app.$projectId.reports.sentiment'
+import { Route as AppProjectIdReportsReputationRouteImport } from './routes/app.$projectId.reports.reputation'
+import { Route as AppProjectIdReportsMediaRouteImport } from './routes/app.$projectId.reports.media'
+import { Route as AppProjectIdReportsFanoutRouteImport } from './routes/app.$projectId.reports.fanout'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -71,39 +81,9 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSeoAuditRoute = AppSeoAuditRouteImport.update({
-  id: '/seo-audit',
-  path: '/seo-audit',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppReportsRoute = AppReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppRankingsRoute = AppRankingsRouteImport.update({
-  id: '/rankings',
-  path: '/rankings',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppPromptsRoute = AppPromptsRouteImport.update({
-  id: '/prompts',
-  path: '/prompts',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppProjectsRoute = AppProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppModelsRoute = AppModelsRouteImport.update({
-  id: '/models',
-  path: '/models',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMentionsRoute = AppMentionsRouteImport.update({
-  id: '/mentions',
-  path: '/mentions',
   getParentRoute: () => AppRoute,
 } as any)
 const AppIntegrationsRoute = AppIntegrationsRouteImport.update({
@@ -111,29 +91,14 @@ const AppIntegrationsRoute = AppIntegrationsRouteImport.update({
   path: '/integrations',
   getParentRoute: () => AppRoute,
 } as any)
-const AppInsightsRoute = AppInsightsRouteImport.update({
-  id: '/insights',
-  path: '/insights',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
-const AppCompetitorsRoute = AppCompetitorsRouteImport.update({
-  id: '/competitors',
-  path: '/competitors',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppBillingRoute = AppBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAlertsRoute = AppAlertsRouteImport.update({
@@ -161,11 +126,113 @@ const ApiGenerateInsightsRoute = ApiGenerateInsightsRouteImport.update({
   path: '/api/generate-insights',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppProjectIdIndexRoute = AppProjectIdIndexRouteImport.update({
+  id: '/$projectId/',
+  path: '/$projectId/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectIdSeoAuditRoute = AppProjectIdSeoAuditRouteImport.update({
+  id: '/$projectId/seo-audit',
+  path: '/$projectId/seo-audit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectIdResponsesRoute = AppProjectIdResponsesRouteImport.update({
+  id: '/$projectId/responses',
+  path: '/$projectId/responses',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectIdReportsRoute = AppProjectIdReportsRouteImport.update({
+  id: '/$projectId/reports',
+  path: '/$projectId/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectIdRankingsRoute = AppProjectIdRankingsRouteImport.update({
+  id: '/$projectId/rankings',
+  path: '/$projectId/rankings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectIdPromptsRoute = AppProjectIdPromptsRouteImport.update({
+  id: '/$projectId/prompts',
+  path: '/$projectId/prompts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectIdModelsRoute = AppProjectIdModelsRouteImport.update({
+  id: '/$projectId/models',
+  path: '/$projectId/models',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectIdMentionsRoute = AppProjectIdMentionsRouteImport.update({
+  id: '/$projectId/mentions',
+  path: '/$projectId/mentions',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectIdInsightsRoute = AppProjectIdInsightsRouteImport.update({
+  id: '/$projectId/insights',
+  path: '/$projectId/insights',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectIdCompetitorsRoute = AppProjectIdCompetitorsRouteImport.update({
+  id: '/$projectId/competitors',
+  path: '/$projectId/competitors',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectIdCitationsRoute = AppProjectIdCitationsRouteImport.update({
+  id: '/$projectId/citations',
+  path: '/$projectId/citations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectIdAnalyticsRoute = AppProjectIdAnalyticsRouteImport.update({
+  id: '/$projectId/analytics',
+  path: '/$projectId/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiLlmsTxtProjectIdRoute = ApiLlmsTxtProjectIdRouteImport.update({
   id: '/api/llms-txt/$projectId',
   path: '/api/llms-txt/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppProjectIdToolsResearchRoute =
+  AppProjectIdToolsResearchRouteImport.update({
+    id: '/$projectId/tools/research',
+    path: '/$projectId/tools/research',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppProjectIdToolsAnnotationsRoute =
+  AppProjectIdToolsAnnotationsRouteImport.update({
+    id: '/$projectId/tools/annotations',
+    path: '/$projectId/tools/annotations',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppProjectIdReportsShoppingRoute =
+  AppProjectIdReportsShoppingRouteImport.update({
+    id: '/shopping',
+    path: '/shopping',
+    getParentRoute: () => AppProjectIdReportsRoute,
+  } as any)
+const AppProjectIdReportsSentimentRoute =
+  AppProjectIdReportsSentimentRouteImport.update({
+    id: '/sentiment',
+    path: '/sentiment',
+    getParentRoute: () => AppProjectIdReportsRoute,
+  } as any)
+const AppProjectIdReportsReputationRoute =
+  AppProjectIdReportsReputationRouteImport.update({
+    id: '/reputation',
+    path: '/reputation',
+    getParentRoute: () => AppProjectIdReportsRoute,
+  } as any)
+const AppProjectIdReportsMediaRoute =
+  AppProjectIdReportsMediaRouteImport.update({
+    id: '/media',
+    path: '/media',
+    getParentRoute: () => AppProjectIdReportsRoute,
+  } as any)
+const AppProjectIdReportsFanoutRoute =
+  AppProjectIdReportsFanoutRouteImport.update({
+    id: '/fanout',
+    path: '/fanout',
+    getParentRoute: () => AppProjectIdReportsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -177,23 +244,33 @@ export interface FileRoutesByFullPath {
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
   '/app/alerts': typeof AppAlertsRoute
-  '/app/analytics': typeof AppAnalyticsRoute
   '/app/billing': typeof AppBillingRoute
-  '/app/competitors': typeof AppCompetitorsRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/insights': typeof AppInsightsRoute
   '/app/integrations': typeof AppIntegrationsRoute
-  '/app/mentions': typeof AppMentionsRoute
-  '/app/models': typeof AppModelsRoute
   '/app/projects': typeof AppProjectsRoute
-  '/app/prompts': typeof AppPromptsRoute
-  '/app/rankings': typeof AppRankingsRoute
-  '/app/reports': typeof AppReportsRoute
-  '/app/seo-audit': typeof AppSeoAuditRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app/': typeof AppIndexRoute
   '/api/llms-txt/$projectId': typeof ApiLlmsTxtProjectIdRoute
+  '/app/$projectId/analytics': typeof AppProjectIdAnalyticsRoute
+  '/app/$projectId/citations': typeof AppProjectIdCitationsRoute
+  '/app/$projectId/competitors': typeof AppProjectIdCompetitorsRoute
+  '/app/$projectId/insights': typeof AppProjectIdInsightsRoute
+  '/app/$projectId/mentions': typeof AppProjectIdMentionsRoute
+  '/app/$projectId/models': typeof AppProjectIdModelsRoute
+  '/app/$projectId/prompts': typeof AppProjectIdPromptsRoute
+  '/app/$projectId/rankings': typeof AppProjectIdRankingsRoute
+  '/app/$projectId/reports': typeof AppProjectIdReportsRouteWithChildren
+  '/app/$projectId/responses': typeof AppProjectIdResponsesRoute
+  '/app/$projectId/seo-audit': typeof AppProjectIdSeoAuditRoute
+  '/app/$projectId/': typeof AppProjectIdIndexRoute
+  '/app/$projectId/reports/fanout': typeof AppProjectIdReportsFanoutRoute
+  '/app/$projectId/reports/media': typeof AppProjectIdReportsMediaRoute
+  '/app/$projectId/reports/reputation': typeof AppProjectIdReportsReputationRoute
+  '/app/$projectId/reports/sentiment': typeof AppProjectIdReportsSentimentRoute
+  '/app/$projectId/reports/shopping': typeof AppProjectIdReportsShoppingRoute
+  '/app/$projectId/tools/annotations': typeof AppProjectIdToolsAnnotationsRoute
+  '/app/$projectId/tools/research': typeof AppProjectIdToolsResearchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -204,23 +281,33 @@ export interface FileRoutesByTo {
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
   '/app/alerts': typeof AppAlertsRoute
-  '/app/analytics': typeof AppAnalyticsRoute
   '/app/billing': typeof AppBillingRoute
-  '/app/competitors': typeof AppCompetitorsRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/insights': typeof AppInsightsRoute
   '/app/integrations': typeof AppIntegrationsRoute
-  '/app/mentions': typeof AppMentionsRoute
-  '/app/models': typeof AppModelsRoute
   '/app/projects': typeof AppProjectsRoute
-  '/app/prompts': typeof AppPromptsRoute
-  '/app/rankings': typeof AppRankingsRoute
-  '/app/reports': typeof AppReportsRoute
-  '/app/seo-audit': typeof AppSeoAuditRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app': typeof AppIndexRoute
   '/api/llms-txt/$projectId': typeof ApiLlmsTxtProjectIdRoute
+  '/app/$projectId/analytics': typeof AppProjectIdAnalyticsRoute
+  '/app/$projectId/citations': typeof AppProjectIdCitationsRoute
+  '/app/$projectId/competitors': typeof AppProjectIdCompetitorsRoute
+  '/app/$projectId/insights': typeof AppProjectIdInsightsRoute
+  '/app/$projectId/mentions': typeof AppProjectIdMentionsRoute
+  '/app/$projectId/models': typeof AppProjectIdModelsRoute
+  '/app/$projectId/prompts': typeof AppProjectIdPromptsRoute
+  '/app/$projectId/rankings': typeof AppProjectIdRankingsRoute
+  '/app/$projectId/reports': typeof AppProjectIdReportsRouteWithChildren
+  '/app/$projectId/responses': typeof AppProjectIdResponsesRoute
+  '/app/$projectId/seo-audit': typeof AppProjectIdSeoAuditRoute
+  '/app/$projectId': typeof AppProjectIdIndexRoute
+  '/app/$projectId/reports/fanout': typeof AppProjectIdReportsFanoutRoute
+  '/app/$projectId/reports/media': typeof AppProjectIdReportsMediaRoute
+  '/app/$projectId/reports/reputation': typeof AppProjectIdReportsReputationRoute
+  '/app/$projectId/reports/sentiment': typeof AppProjectIdReportsSentimentRoute
+  '/app/$projectId/reports/shopping': typeof AppProjectIdReportsShoppingRoute
+  '/app/$projectId/tools/annotations': typeof AppProjectIdToolsAnnotationsRoute
+  '/app/$projectId/tools/research': typeof AppProjectIdToolsResearchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -233,23 +320,33 @@ export interface FileRoutesById {
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
   '/app/alerts': typeof AppAlertsRoute
-  '/app/analytics': typeof AppAnalyticsRoute
   '/app/billing': typeof AppBillingRoute
-  '/app/competitors': typeof AppCompetitorsRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/insights': typeof AppInsightsRoute
   '/app/integrations': typeof AppIntegrationsRoute
-  '/app/mentions': typeof AppMentionsRoute
-  '/app/models': typeof AppModelsRoute
   '/app/projects': typeof AppProjectsRoute
-  '/app/prompts': typeof AppPromptsRoute
-  '/app/rankings': typeof AppRankingsRoute
-  '/app/reports': typeof AppReportsRoute
-  '/app/seo-audit': typeof AppSeoAuditRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app/': typeof AppIndexRoute
   '/api/llms-txt/$projectId': typeof ApiLlmsTxtProjectIdRoute
+  '/app/$projectId/analytics': typeof AppProjectIdAnalyticsRoute
+  '/app/$projectId/citations': typeof AppProjectIdCitationsRoute
+  '/app/$projectId/competitors': typeof AppProjectIdCompetitorsRoute
+  '/app/$projectId/insights': typeof AppProjectIdInsightsRoute
+  '/app/$projectId/mentions': typeof AppProjectIdMentionsRoute
+  '/app/$projectId/models': typeof AppProjectIdModelsRoute
+  '/app/$projectId/prompts': typeof AppProjectIdPromptsRoute
+  '/app/$projectId/rankings': typeof AppProjectIdRankingsRoute
+  '/app/$projectId/reports': typeof AppProjectIdReportsRouteWithChildren
+  '/app/$projectId/responses': typeof AppProjectIdResponsesRoute
+  '/app/$projectId/seo-audit': typeof AppProjectIdSeoAuditRoute
+  '/app/$projectId/': typeof AppProjectIdIndexRoute
+  '/app/$projectId/reports/fanout': typeof AppProjectIdReportsFanoutRoute
+  '/app/$projectId/reports/media': typeof AppProjectIdReportsMediaRoute
+  '/app/$projectId/reports/reputation': typeof AppProjectIdReportsReputationRoute
+  '/app/$projectId/reports/sentiment': typeof AppProjectIdReportsSentimentRoute
+  '/app/$projectId/reports/shopping': typeof AppProjectIdReportsShoppingRoute
+  '/app/$projectId/tools/annotations': typeof AppProjectIdToolsAnnotationsRoute
+  '/app/$projectId/tools/research': typeof AppProjectIdToolsResearchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -263,23 +360,33 @@ export interface FileRouteTypes {
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
     | '/app/alerts'
-    | '/app/analytics'
     | '/app/billing'
-    | '/app/competitors'
     | '/app/dashboard'
-    | '/app/insights'
     | '/app/integrations'
-    | '/app/mentions'
-    | '/app/models'
     | '/app/projects'
-    | '/app/prompts'
-    | '/app/rankings'
-    | '/app/reports'
-    | '/app/seo-audit'
     | '/app/settings'
     | '/app/team'
     | '/app/'
     | '/api/llms-txt/$projectId'
+    | '/app/$projectId/analytics'
+    | '/app/$projectId/citations'
+    | '/app/$projectId/competitors'
+    | '/app/$projectId/insights'
+    | '/app/$projectId/mentions'
+    | '/app/$projectId/models'
+    | '/app/$projectId/prompts'
+    | '/app/$projectId/rankings'
+    | '/app/$projectId/reports'
+    | '/app/$projectId/responses'
+    | '/app/$projectId/seo-audit'
+    | '/app/$projectId/'
+    | '/app/$projectId/reports/fanout'
+    | '/app/$projectId/reports/media'
+    | '/app/$projectId/reports/reputation'
+    | '/app/$projectId/reports/sentiment'
+    | '/app/$projectId/reports/shopping'
+    | '/app/$projectId/tools/annotations'
+    | '/app/$projectId/tools/research'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -290,23 +397,33 @@ export interface FileRouteTypes {
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
     | '/app/alerts'
-    | '/app/analytics'
     | '/app/billing'
-    | '/app/competitors'
     | '/app/dashboard'
-    | '/app/insights'
     | '/app/integrations'
-    | '/app/mentions'
-    | '/app/models'
     | '/app/projects'
-    | '/app/prompts'
-    | '/app/rankings'
-    | '/app/reports'
-    | '/app/seo-audit'
     | '/app/settings'
     | '/app/team'
     | '/app'
     | '/api/llms-txt/$projectId'
+    | '/app/$projectId/analytics'
+    | '/app/$projectId/citations'
+    | '/app/$projectId/competitors'
+    | '/app/$projectId/insights'
+    | '/app/$projectId/mentions'
+    | '/app/$projectId/models'
+    | '/app/$projectId/prompts'
+    | '/app/$projectId/rankings'
+    | '/app/$projectId/reports'
+    | '/app/$projectId/responses'
+    | '/app/$projectId/seo-audit'
+    | '/app/$projectId'
+    | '/app/$projectId/reports/fanout'
+    | '/app/$projectId/reports/media'
+    | '/app/$projectId/reports/reputation'
+    | '/app/$projectId/reports/sentiment'
+    | '/app/$projectId/reports/shopping'
+    | '/app/$projectId/tools/annotations'
+    | '/app/$projectId/tools/research'
   id:
     | '__root__'
     | '/'
@@ -318,23 +435,33 @@ export interface FileRouteTypes {
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
     | '/app/alerts'
-    | '/app/analytics'
     | '/app/billing'
-    | '/app/competitors'
     | '/app/dashboard'
-    | '/app/insights'
     | '/app/integrations'
-    | '/app/mentions'
-    | '/app/models'
     | '/app/projects'
-    | '/app/prompts'
-    | '/app/rankings'
-    | '/app/reports'
-    | '/app/seo-audit'
     | '/app/settings'
     | '/app/team'
     | '/app/'
     | '/api/llms-txt/$projectId'
+    | '/app/$projectId/analytics'
+    | '/app/$projectId/citations'
+    | '/app/$projectId/competitors'
+    | '/app/$projectId/insights'
+    | '/app/$projectId/mentions'
+    | '/app/$projectId/models'
+    | '/app/$projectId/prompts'
+    | '/app/$projectId/rankings'
+    | '/app/$projectId/reports'
+    | '/app/$projectId/responses'
+    | '/app/$projectId/seo-audit'
+    | '/app/$projectId/'
+    | '/app/$projectId/reports/fanout'
+    | '/app/$projectId/reports/media'
+    | '/app/$projectId/reports/reputation'
+    | '/app/$projectId/reports/sentiment'
+    | '/app/$projectId/reports/shopping'
+    | '/app/$projectId/tools/annotations'
+    | '/app/$projectId/tools/research'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -400,53 +527,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/seo-audit': {
-      id: '/app/seo-audit'
-      path: '/seo-audit'
-      fullPath: '/app/seo-audit'
-      preLoaderRoute: typeof AppSeoAuditRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/reports': {
-      id: '/app/reports'
-      path: '/reports'
-      fullPath: '/app/reports'
-      preLoaderRoute: typeof AppReportsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/rankings': {
-      id: '/app/rankings'
-      path: '/rankings'
-      fullPath: '/app/rankings'
-      preLoaderRoute: typeof AppRankingsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/prompts': {
-      id: '/app/prompts'
-      path: '/prompts'
-      fullPath: '/app/prompts'
-      preLoaderRoute: typeof AppPromptsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/projects': {
       id: '/app/projects'
       path: '/projects'
       fullPath: '/app/projects'
       preLoaderRoute: typeof AppProjectsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/models': {
-      id: '/app/models'
-      path: '/models'
-      fullPath: '/app/models'
-      preLoaderRoute: typeof AppModelsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/mentions': {
-      id: '/app/mentions'
-      path: '/mentions'
-      fullPath: '/app/mentions'
-      preLoaderRoute: typeof AppMentionsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/integrations': {
@@ -456,13 +541,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIntegrationsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/insights': {
-      id: '/app/insights'
-      path: '/insights'
-      fullPath: '/app/insights'
-      preLoaderRoute: typeof AppInsightsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/dashboard': {
       id: '/app/dashboard'
       path: '/dashboard'
@@ -470,25 +548,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/competitors': {
-      id: '/app/competitors'
-      path: '/competitors'
-      fullPath: '/app/competitors'
-      preLoaderRoute: typeof AppCompetitorsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/billing': {
       id: '/app/billing'
       path: '/billing'
       fullPath: '/app/billing'
       preLoaderRoute: typeof AppBillingRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/analytics': {
-      id: '/app/analytics'
-      path: '/analytics'
-      fullPath: '/app/analytics'
-      preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/alerts': {
@@ -526,6 +590,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerateInsightsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/$projectId/': {
+      id: '/app/$projectId/'
+      path: '/$projectId'
+      fullPath: '/app/$projectId/'
+      preLoaderRoute: typeof AppProjectIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/seo-audit': {
+      id: '/app/$projectId/seo-audit'
+      path: '/$projectId/seo-audit'
+      fullPath: '/app/$projectId/seo-audit'
+      preLoaderRoute: typeof AppProjectIdSeoAuditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/responses': {
+      id: '/app/$projectId/responses'
+      path: '/$projectId/responses'
+      fullPath: '/app/$projectId/responses'
+      preLoaderRoute: typeof AppProjectIdResponsesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/reports': {
+      id: '/app/$projectId/reports'
+      path: '/$projectId/reports'
+      fullPath: '/app/$projectId/reports'
+      preLoaderRoute: typeof AppProjectIdReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/rankings': {
+      id: '/app/$projectId/rankings'
+      path: '/$projectId/rankings'
+      fullPath: '/app/$projectId/rankings'
+      preLoaderRoute: typeof AppProjectIdRankingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/prompts': {
+      id: '/app/$projectId/prompts'
+      path: '/$projectId/prompts'
+      fullPath: '/app/$projectId/prompts'
+      preLoaderRoute: typeof AppProjectIdPromptsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/models': {
+      id: '/app/$projectId/models'
+      path: '/$projectId/models'
+      fullPath: '/app/$projectId/models'
+      preLoaderRoute: typeof AppProjectIdModelsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/mentions': {
+      id: '/app/$projectId/mentions'
+      path: '/$projectId/mentions'
+      fullPath: '/app/$projectId/mentions'
+      preLoaderRoute: typeof AppProjectIdMentionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/insights': {
+      id: '/app/$projectId/insights'
+      path: '/$projectId/insights'
+      fullPath: '/app/$projectId/insights'
+      preLoaderRoute: typeof AppProjectIdInsightsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/competitors': {
+      id: '/app/$projectId/competitors'
+      path: '/$projectId/competitors'
+      fullPath: '/app/$projectId/competitors'
+      preLoaderRoute: typeof AppProjectIdCompetitorsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/citations': {
+      id: '/app/$projectId/citations'
+      path: '/$projectId/citations'
+      fullPath: '/app/$projectId/citations'
+      preLoaderRoute: typeof AppProjectIdCitationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/analytics': {
+      id: '/app/$projectId/analytics'
+      path: '/$projectId/analytics'
+      fullPath: '/app/$projectId/analytics'
+      preLoaderRoute: typeof AppProjectIdAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/llms-txt/$projectId': {
       id: '/api/llms-txt/$projectId'
       path: '/api/llms-txt/$projectId'
@@ -533,47 +681,125 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLlmsTxtProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/$projectId/tools/research': {
+      id: '/app/$projectId/tools/research'
+      path: '/$projectId/tools/research'
+      fullPath: '/app/$projectId/tools/research'
+      preLoaderRoute: typeof AppProjectIdToolsResearchRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/tools/annotations': {
+      id: '/app/$projectId/tools/annotations'
+      path: '/$projectId/tools/annotations'
+      fullPath: '/app/$projectId/tools/annotations'
+      preLoaderRoute: typeof AppProjectIdToolsAnnotationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/$projectId/reports/shopping': {
+      id: '/app/$projectId/reports/shopping'
+      path: '/shopping'
+      fullPath: '/app/$projectId/reports/shopping'
+      preLoaderRoute: typeof AppProjectIdReportsShoppingRouteImport
+      parentRoute: typeof AppProjectIdReportsRoute
+    }
+    '/app/$projectId/reports/sentiment': {
+      id: '/app/$projectId/reports/sentiment'
+      path: '/sentiment'
+      fullPath: '/app/$projectId/reports/sentiment'
+      preLoaderRoute: typeof AppProjectIdReportsSentimentRouteImport
+      parentRoute: typeof AppProjectIdReportsRoute
+    }
+    '/app/$projectId/reports/reputation': {
+      id: '/app/$projectId/reports/reputation'
+      path: '/reputation'
+      fullPath: '/app/$projectId/reports/reputation'
+      preLoaderRoute: typeof AppProjectIdReportsReputationRouteImport
+      parentRoute: typeof AppProjectIdReportsRoute
+    }
+    '/app/$projectId/reports/media': {
+      id: '/app/$projectId/reports/media'
+      path: '/media'
+      fullPath: '/app/$projectId/reports/media'
+      preLoaderRoute: typeof AppProjectIdReportsMediaRouteImport
+      parentRoute: typeof AppProjectIdReportsRoute
+    }
+    '/app/$projectId/reports/fanout': {
+      id: '/app/$projectId/reports/fanout'
+      path: '/fanout'
+      fullPath: '/app/$projectId/reports/fanout'
+      preLoaderRoute: typeof AppProjectIdReportsFanoutRouteImport
+      parentRoute: typeof AppProjectIdReportsRoute
+    }
   }
 }
 
+interface AppProjectIdReportsRouteChildren {
+  AppProjectIdReportsFanoutRoute: typeof AppProjectIdReportsFanoutRoute
+  AppProjectIdReportsMediaRoute: typeof AppProjectIdReportsMediaRoute
+  AppProjectIdReportsReputationRoute: typeof AppProjectIdReportsReputationRoute
+  AppProjectIdReportsSentimentRoute: typeof AppProjectIdReportsSentimentRoute
+  AppProjectIdReportsShoppingRoute: typeof AppProjectIdReportsShoppingRoute
+}
+
+const AppProjectIdReportsRouteChildren: AppProjectIdReportsRouteChildren = {
+  AppProjectIdReportsFanoutRoute: AppProjectIdReportsFanoutRoute,
+  AppProjectIdReportsMediaRoute: AppProjectIdReportsMediaRoute,
+  AppProjectIdReportsReputationRoute: AppProjectIdReportsReputationRoute,
+  AppProjectIdReportsSentimentRoute: AppProjectIdReportsSentimentRoute,
+  AppProjectIdReportsShoppingRoute: AppProjectIdReportsShoppingRoute,
+}
+
+const AppProjectIdReportsRouteWithChildren =
+  AppProjectIdReportsRoute._addFileChildren(AppProjectIdReportsRouteChildren)
+
 interface AppRouteChildren {
   AppAlertsRoute: typeof AppAlertsRoute
-  AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppBillingRoute: typeof AppBillingRoute
-  AppCompetitorsRoute: typeof AppCompetitorsRoute
   AppDashboardRoute: typeof AppDashboardRoute
-  AppInsightsRoute: typeof AppInsightsRoute
   AppIntegrationsRoute: typeof AppIntegrationsRoute
-  AppMentionsRoute: typeof AppMentionsRoute
-  AppModelsRoute: typeof AppModelsRoute
   AppProjectsRoute: typeof AppProjectsRoute
-  AppPromptsRoute: typeof AppPromptsRoute
-  AppRankingsRoute: typeof AppRankingsRoute
-  AppReportsRoute: typeof AppReportsRoute
-  AppSeoAuditRoute: typeof AppSeoAuditRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppTeamRoute: typeof AppTeamRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppProjectIdAnalyticsRoute: typeof AppProjectIdAnalyticsRoute
+  AppProjectIdCitationsRoute: typeof AppProjectIdCitationsRoute
+  AppProjectIdCompetitorsRoute: typeof AppProjectIdCompetitorsRoute
+  AppProjectIdInsightsRoute: typeof AppProjectIdInsightsRoute
+  AppProjectIdMentionsRoute: typeof AppProjectIdMentionsRoute
+  AppProjectIdModelsRoute: typeof AppProjectIdModelsRoute
+  AppProjectIdPromptsRoute: typeof AppProjectIdPromptsRoute
+  AppProjectIdRankingsRoute: typeof AppProjectIdRankingsRoute
+  AppProjectIdReportsRoute: typeof AppProjectIdReportsRouteWithChildren
+  AppProjectIdResponsesRoute: typeof AppProjectIdResponsesRoute
+  AppProjectIdSeoAuditRoute: typeof AppProjectIdSeoAuditRoute
+  AppProjectIdIndexRoute: typeof AppProjectIdIndexRoute
+  AppProjectIdToolsAnnotationsRoute: typeof AppProjectIdToolsAnnotationsRoute
+  AppProjectIdToolsResearchRoute: typeof AppProjectIdToolsResearchRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAlertsRoute: AppAlertsRoute,
-  AppAnalyticsRoute: AppAnalyticsRoute,
   AppBillingRoute: AppBillingRoute,
-  AppCompetitorsRoute: AppCompetitorsRoute,
   AppDashboardRoute: AppDashboardRoute,
-  AppInsightsRoute: AppInsightsRoute,
   AppIntegrationsRoute: AppIntegrationsRoute,
-  AppMentionsRoute: AppMentionsRoute,
-  AppModelsRoute: AppModelsRoute,
   AppProjectsRoute: AppProjectsRoute,
-  AppPromptsRoute: AppPromptsRoute,
-  AppRankingsRoute: AppRankingsRoute,
-  AppReportsRoute: AppReportsRoute,
-  AppSeoAuditRoute: AppSeoAuditRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppTeamRoute: AppTeamRoute,
   AppIndexRoute: AppIndexRoute,
+  AppProjectIdAnalyticsRoute: AppProjectIdAnalyticsRoute,
+  AppProjectIdCitationsRoute: AppProjectIdCitationsRoute,
+  AppProjectIdCompetitorsRoute: AppProjectIdCompetitorsRoute,
+  AppProjectIdInsightsRoute: AppProjectIdInsightsRoute,
+  AppProjectIdMentionsRoute: AppProjectIdMentionsRoute,
+  AppProjectIdModelsRoute: AppProjectIdModelsRoute,
+  AppProjectIdPromptsRoute: AppProjectIdPromptsRoute,
+  AppProjectIdRankingsRoute: AppProjectIdRankingsRoute,
+  AppProjectIdReportsRoute: AppProjectIdReportsRouteWithChildren,
+  AppProjectIdResponsesRoute: AppProjectIdResponsesRoute,
+  AppProjectIdSeoAuditRoute: AppProjectIdSeoAuditRoute,
+  AppProjectIdIndexRoute: AppProjectIdIndexRoute,
+  AppProjectIdToolsAnnotationsRoute: AppProjectIdToolsAnnotationsRoute,
+  AppProjectIdToolsResearchRoute: AppProjectIdToolsResearchRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

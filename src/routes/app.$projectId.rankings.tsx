@@ -4,7 +4,7 @@ import { Trophy, Loader2, RefreshCw, Download, Filter, ChevronDown, Sparkles } f
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/rankings")({
+export const Route = createFileRoute("/app/$projectId/rankings")({
   component: Rankings,
 });
 

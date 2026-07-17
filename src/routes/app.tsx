@@ -2,31 +2,50 @@ import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-route
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
 import {
-  LayoutDashboard, FolderOpen, MessageSquare, Bot, Trophy, AtSign,
+  LayoutDashboard, FolderOpen, MessageSquare, MessageCircle, MessagesSquare, Bot, Trophy, AtSign,
   Target, BarChart3, FileText, Bell, Users, Plug, CreditCard, Settings,
-  Search, LogOut, Sparkles, ChevronRight, ShieldCheck, CheckCheck
+  Search, LogOut, Sparkles, ChevronRight, ShieldCheck, CheckCheck, Link2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Logo } from "@/components/landing/Logo";
 import { toast } from "sonner";
 
+import { useParams } from "@tanstack/react-router";
+
 export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
-const mainNav = [
+const topNav = [
   { title: "Dashboard",   url: "/app/dashboard",     icon: LayoutDashboard },
-  { title: "SEO Audit",   url: "/app/seo-audit",     icon: ShieldCheck     },
-  { title: "Projects",    url: "/app/projects",       icon: FolderOpen      },
-  { title: "Prompts",     url: "/app/prompts",        icon: MessageSquare   },
-  { title: "AI Models",   url: "/app/models",         icon: Bot             },
-  { title: "AI Insights", url: "/app/insights",       icon: Sparkles        },
-  { title: "Rankings",    url: "/app/rankings",        icon: Trophy          },
-  { title: "Mentions",    url: "/app/mentions",        icon: AtSign          },
-  { title: "Competitors", url: "/app/competitors",     icon: Target          },
-  { title: "Analytics",   url: "/app/analytics",       icon: BarChart3       },
-  { title: "Reports",     url: "/app/reports",          icon: FileText        },
+  { title: "Search",      url: "/app/search",        icon: Search, isStub: true },
+  { title: "Agent",       url: "/app/agent",         icon: Sparkles, isStub: true, badge: "New" },
+];
+
+const projectNav = [
+  { title: "Overview",    url: "/app/$projectId",             icon: BarChart3 },
+  { title: "Prompts",     url: "/app/$projectId/prompts",      icon: MessagesSquare },
+  { title: "Responses",   url: "/app/$projectId/responses",    icon: MessageCircle, isStub: true },
+  { title: "Citations",   url: "/app/$projectId/citations",    icon: Link2, isStub: true },
+];
+
+const reportsNav = [
+  { title: "Sentiment",          url: "/app/$projectId/reports/sentiment", icon: Target, isStub: true },
+  { title: "AI Model Insights",  url: "/app/$projectId/models",      icon: Bot },
+  { title: "Query Fan Out",      url: "/app/$projectId/reports/fanout", icon: LayoutDashboard, isStub: true },
+  { title: "AI Traffic",         url: "/app/$projectId/analytics",   icon: BarChart3 },
+  { title: "Agent Analytics",    url: "/app/$projectId/insights",    icon: Sparkles },
+  { title: "Reputation",         url: "/app/$projectId/reports/reputation", icon: ShieldCheck, isStub: true },
+  { title: "Owned Media",        url: "/app/$projectId/reports/media", icon: FileText, isStub: true },
+  { title: "Reddit Intelligence",url: "/app/$projectId/mentions",    icon: MessageSquare },
+  { title: "ChatGPT Shopping",   url: "/app/$projectId/reports/shopping", icon: CreditCard, isStub: true },
+];
+
+const toolsNav = [
+  { title: "Prompt Research", url: "/app/$projectId/tools/research", icon: Search, isStub: true },
+  { title: "Annotations",     url: "/app/$projectId/tools/annotations", icon: FileText, isStub: true },
+  { title: "SEO Audit",       url: "/app/$projectId/seo-audit", icon: ShieldCheck },
 ];
 
 const secondaryNav = [
@@ -38,6 +57,8 @@ const secondaryNav = [
 
 function AppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const params = useParams({ strict: false }) as { projectId?: string };
+  const projectId = params.projectId;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [user, setUser] = useState<{ email?: string; name?: string } | null>(null);
@@ -45,6 +66,9 @@ function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [activeOrgId, setActiveOrgId] = useState<string>("");
+  const [projects, setProjects] = useState<any[]>([]);
+  const [reportsOpen, setReportsOpen] = useState(true);
+  const [toolsOpen, setToolsOpen] = useState(true);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -94,17 +118,31 @@ function AppLayout() {
         });
         fetchUnreadAlerts();
         
-        // Fetch user organizations
+        // Fetch user organizations (two-step: memberships → orgs)
         let orgsList = [];
         try {
-          const { data: orgData } = await (supabase as any)
-            .from("organizations")
-            .select("*, org_members!inner(role)")
-            .eq("org_members.user_id", data.user.id);
-          orgsList = orgData || [];
+          const { data: memberRows } = await (supabase as any)
+            .from("org_members")
+            .select("org_id, role")
+            .eq("user_id", data.user.id)
+            .eq("status", "active");
+
+          if (memberRows && memberRows.length > 0) {
+            const orgIds = memberRows.map((m: any) => m.org_id);
+            const { data: orgData } = await (supabase as any)
+              .from("organizations")
+              .select("*")
+              .in("id", orgIds);
+            // Attach the role from the membership row
+            orgsList = (orgData || []).map((org: any) => ({
+              ...org,
+              org_members: [{ role: memberRows.find((m: any) => m.org_id === org.id)?.role || "member" }],
+            }));
+          }
         } catch (e) {
           console.error("Failed to query organizations", e);
         }
+
         
         if (orgsList.length === 0) {
           try {
@@ -137,12 +175,30 @@ function AppLayout() {
         }
         
         setOrganizations(orgsList);
+        let currentActiveOrgId = "";
         const savedOrg = localStorage.getItem("active_org_id");
         if (savedOrg && orgsList.some((o: any) => o.id === savedOrg)) {
           setActiveOrgId(savedOrg);
+          currentActiveOrgId = savedOrg;
         } else if (orgsList.length > 0) {
           setActiveOrgId(orgsList[0].id);
+          currentActiveOrgId = orgsList[0].id;
           localStorage.setItem("active_org_id", orgsList[0].id);
+        }
+
+        // Fetch projects for the active org
+        if (currentActiveOrgId) {
+          try {
+            const { data: projData } = await (supabase as any)
+              .from("projects")
+              .select("id, name, brand")
+              .eq("org_id", currentActiveOrgId)
+              .order("created_at", { ascending: false });
+            
+            setProjects(projData || []);
+          } catch (err) {
+            console.error("Failed to fetch projects", err);
+          }
         }
       }
       setChecked(true);
@@ -206,40 +262,144 @@ function AppLayout() {
         </div>
 
         {/* Main navigation */}
-        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto mockup-scroll">
-          {mainNav.map((item) => {
-            const active = pathname === item.url || pathname.startsWith(item.url + "/");
-            const isAlerts = item.url === "/app/alerts";
-            return (
+        <nav className="flex-1 px-2 py-3 space-y-4 overflow-y-auto mockup-scroll">
+          
+          <div className="space-y-0.5">
+            {topNav.map((item) => (
               <Link
                 key={item.url}
                 to={item.url}
-                onClick={isAlerts ? fetchUnreadAlerts : undefined}
                 className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
-                  active
+                  pathname === item.url
                     ? "bg-indigo-600/15 text-indigo-400"
                     : "text-white/50 hover:bg-white/[0.04] hover:text-white/80"
                 }`}
               >
-                <div className="relative shrink-0">
-                  <item.icon className="w-4 h-4" />
-                  {isAlerts && unreadAlerts > 0 && (
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 text-[8px] font-bold text-white flex items-center justify-center">
-                      {unreadAlerts > 9 ? "9+" : unreadAlerts}
-                    </span>
-                  )}
-                </div>
+                <item.icon className="w-4 h-4" />
                 {!collapsed && <span>{item.title}</span>}
-                {!collapsed && isAlerts && unreadAlerts > 0 && (
-                  <span className="ml-auto w-4 h-4 rounded-full bg-red-500/20 text-red-400 text-[9px] font-bold flex items-center justify-center">
-                    {unreadAlerts > 9 ? "9+" : unreadAlerts}
+                {!collapsed && item.badge && (
+                  <span className="ml-auto rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 uppercase">
+                    {item.badge}
                   </span>
                 )}
               </Link>
-            );
-          })}
+            ))}
+          </div>
 
-          <div className="h-px bg-white/5 my-3 mx-1" />
+          <div className="h-px bg-white/5 mx-1" />
+
+          {/* Project Switcher */}
+          {!collapsed && (
+            <div className="px-3 py-1">
+              <select
+                value={projectId || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val) {
+                    navigate({ to: `/app/${val}` });
+                  } else {
+                    navigate({ to: "/app/dashboard" });
+                  }
+                }}
+                className="w-full rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/40 transition-colors cursor-pointer appearance-none"
+              >
+                <option value="" disabled className="bg-[#1e1e21] text-white/50">Select Project...</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id} className="bg-[#1e1e21]">{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {projectId && (
+            <>
+              {/* Project Top Nav */}
+              <div className="space-y-0.5">
+                {projectNav.map((item) => {
+                  const actualUrl = item.url.replace('$projectId', projectId);
+                  const active = pathname === actualUrl;
+                  return (
+                    <Link
+                      key={item.title}
+                      to={actualUrl}
+                      className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
+                        active
+                          ? "bg-indigo-600/15 text-indigo-400"
+                          : "text-white/50 hover:bg-white/[0.04] hover:text-white/80"
+                      }`}
+                    >
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Reports Group */}
+              <div className="space-y-0.5">
+                {!collapsed && (
+                  <button
+                    onClick={() => setReportsOpen(!reportsOpen)}
+                    className="flex w-full items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white/30 hover:text-white/60 transition-colors"
+                  >
+                    REPORTS
+                    <ChevronRight className={`w-3.5 h-3.5 transition-transform ${reportsOpen ? "rotate-90" : ""}`} />
+                  </button>
+                )}
+                {(!collapsed ? reportsOpen : true) && reportsNav.map((item) => {
+                  const actualUrl = item.url.replace('$projectId', projectId);
+                  const active = pathname === actualUrl;
+                  return (
+                    <Link
+                      key={item.title}
+                      to={actualUrl}
+                      className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
+                        active
+                          ? "bg-indigo-600/15 text-indigo-400"
+                          : "text-white/50 hover:bg-white/[0.04] hover:text-white/80"
+                      }`}
+                    >
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Tools Group */}
+              <div className="space-y-0.5">
+                {!collapsed && (
+                  <button
+                    onClick={() => setToolsOpen(!toolsOpen)}
+                    className="flex w-full items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white/30 hover:text-white/60 transition-colors"
+                  >
+                    TOOLS
+                    <ChevronRight className={`w-3.5 h-3.5 transition-transform ${toolsOpen ? "rotate-90" : ""}`} />
+                  </button>
+                )}
+                {(!collapsed ? toolsOpen : true) && toolsNav.map((item) => {
+                  const actualUrl = item.url.replace('$projectId', projectId);
+                  const active = pathname === actualUrl;
+                  return (
+                    <Link
+                      key={item.title}
+                      to={actualUrl}
+                      className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
+                        active
+                          ? "bg-indigo-600/15 text-indigo-400"
+                          : "text-white/50 hover:bg-white/[0.04] hover:text-white/80"
+                      }`}
+                    >
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          <div className="h-px bg-white/5 mx-1" />
 
           {secondaryNav.map((item) => {
             const active = pathname === item.url || pathname.startsWith(item.url + "/");

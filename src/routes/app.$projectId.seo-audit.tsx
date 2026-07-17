@@ -1,16 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, XCircle, AlertTriangle, ExternalLink, RefreshCw, Loader2, ShieldCheck, FileCode, Copy, CheckCheck } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, ExternalLink, RefreshCw, Loader2, ShieldCheck, FileCode, Copy, CheckCheck, Cpu } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, Cell } from "recharts";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AeoAuditRunner } from "@/modules/Auditing & Fixing/AeoAuditRunner";
+import { startCrawlJob, getCrawlStatus } from "@/server-fns/crawl-manager";
 
 type SEOAuditSearch = {
   website?: string;
   tab?: string;
 };
 
-export const Route = createFileRoute("/app/seo-audit")({
+export const Route = createFileRoute("/app/$projectId/seo-audit")({
   validateSearch: (search: Record<string, unknown>): SEOAuditSearch => {
     return {
       website: search.website as string | undefined,
@@ -71,14 +73,36 @@ function SEOAudit() {
     setLoading(true);
     setError(null);
     try {
-      const encodedUrl = encodeURIComponent(targetUrl);
-      const res = await fetch(`/api/seo-audit?url=${encodedUrl}`);
-      const result = await res.json();
-      if (result.success) setData(result);
-      else setError(result.error || "Unknown error");
+      const projId = selectedProjectId;
+      if (!projId) throw new Error("Please select a project first.");
+      
+      const { jobId } = await startCrawlJob({ data: { projectId: projId, url: targetUrl } });
+      
+      // Poll for completion
+      const poll = setInterval(async () => {
+        try {
+          const { job, results, issues } = await getCrawlStatus({ data: jobId });
+          if (job.status === "completed") {
+            clearInterval(poll);
+            setData({
+              success: true,
+              healthScore: results?.health_score || 0,
+              issues: issues || []
+            });
+            setLoading(false);
+          } else if (job.status === "failed") {
+            clearInterval(poll);
+            setError(job.error || "Crawl failed");
+            setLoading(false);
+          }
+        } catch (e) {
+          clearInterval(poll);
+          setError(String(e));
+          setLoading(false);
+        }
+      }, 2000);
     } catch (err) {
       setError(String(err));
-    } finally {
       setLoading(false);
     }
   };
@@ -205,6 +229,7 @@ function SEOAudit() {
       <div className="flex items-center gap-1 rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06] p-1 w-fit">
         {[
           { key: "crawl", label: "Technical SEO Crawl", icon: ShieldCheck },
+          { key: "aeo", label: "AEO Audit Crawler", icon: Cpu },
           { key: "geo", label: "GEO Optimizer · llms.txt", icon: FileCode },
         ].map(({ key, label, icon: Icon }) => (
           <button
@@ -308,6 +333,15 @@ function SEOAudit() {
             )}
           </div>
         </div>
+      )}
+
+      {/* ── Tab: AEO Audit Crawler ── */}
+      {activeTab === "aeo" && (
+        <AeoAuditRunner 
+          projectId={selectedProjectId} 
+          websiteUrl={projects.find(p => p.id === selectedProjectId)?.website || ""} 
+          onAuditComplete={() => fetchSuggestions(selectedProjectId)}
+        />
       )}
 
       {/* ── Tab: GEO Optimizer ── */}
