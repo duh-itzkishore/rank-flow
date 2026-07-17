@@ -210,7 +210,7 @@ export async function queryAIModel(
   const actualKey = apiKey || getEnvKey(model);
 
   if (!actualKey) {
-    return getSimulatedFallback(model, promptText, brandName, startTime, competitorNames);
+    return await getSimulatedFallback(model, promptText, brandName, startTime, competitorNames);
   }
 
   const systemPrompt = buildSystemPrompt(brandName, competitorNames);
@@ -388,7 +388,7 @@ export async function queryAIModel(
     };
   } catch (err) {
     console.error(`Error fetching real API for ${model}:`, err);
-    return getSimulatedFallback(model, promptText, brandName, startTime, competitorNames);
+    return await getSimulatedFallback(model, promptText, brandName, startTime, competitorNames);
   }
 }
 
@@ -405,67 +405,162 @@ function getEnvKey(model: string): string | undefined {
   }
 }
 
-function getSimulatedFallback(
+async function fetchWikipediaResults(query: string): Promise<Array<{ url: string; title: string; snippet: string }>> {
+  try {
+    const cleanQuery = query
+      .replace(/\bin\s+(chatgpt|gemini|claude|perplexity|groq|openrouter)\b/gi, "")
+      .trim();
+    const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanQuery)}&utf8=&format=json&origin=*`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const search = data.query?.search;
+    if (!Array.isArray(search)) return [];
+    
+    return search.map((item: any) => {
+      const title = item.title;
+      const snippet = item.snippet
+        .replace(/<[^>]*>/g, '') // Strip HTML tags
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .trim();
+      return {
+        url: `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`,
+        title: `${title} (Wikipedia)`,
+        snippet
+      };
+    });
+  } catch (err) {
+    console.error("Wikipedia search error:", err);
+    return [];
+  }
+}
+
+async function fetchSerpApiResults(query: string, apiKey: string): Promise<Array<{ url: string; title: string; snippet: string }>> {
+  try {
+    const url = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&api_key=${apiKey}`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const organic = data.organic_results;
+    if (!Array.isArray(organic)) return [];
+    return organic.map((item: any) => ({
+      url: item.link || '',
+      title: item.title || '',
+      snippet: item.snippet || ''
+    })).filter(r => r.url && r.title && r.snippet);
+  } catch (err) {
+    console.error("SerpApi search error:", err);
+    return [];
+  }
+}
+
+async function getSimulatedFallback(
   model: string, 
-  _promptText: string, 
+  promptText: string, 
   brandName: string, 
   startTime: number,
   competitorNames: string[] = []
-): ModelResponse & { rawResponse?: any } {
+): Promise<ModelResponse & { rawResponse?: any }> {
   const brand = brandName || "Your Brand";
+  
+  // Clean query: strip out "in chatgpt", etc.
+  const cleanPrompt = promptText
+    .replace(/\bin\s+(chatgpt|gemini|claude|perplexity|groq|openrouter)\b/gi, "")
+    .trim();
+  
+  // Try Wikipedia search first with cleanPrompt + brandName
+  let searchResults = await fetchWikipediaResults(`${cleanPrompt} ${brandName}`);
+  let sourceName = "Wikipedia";
+
+  // If Wikipedia search returned nothing, try with just the prompt
+  if (searchResults.length === 0) {
+    searchResults = await fetchWikipediaResults(cleanPrompt);
+  }
+  
+  // If still nothing, check if SerpApi key exists
+  const serpApiKey = process.env.SERPAPI_API_KEY;
+  if (searchResults.length === 0 && serpApiKey) {
+    const queryText = `${promptText} ${brandName} in ${model}`;
+    searchResults = await fetchSerpApiResults(queryText, serpApiKey);
+    sourceName = "Google Search (via SerpApi)";
+  }
+  
   let responseText = "";
   let isMentioned = false;
   let rank: number | null = null;
+  let citations: Array<{ title: string; url: string }> = [];
 
-  switch (model) {
-    case "chatgpt":
-      responseText = `Here are the top recommendations in this category:\n1. Competitor A - Best for enterprise scale.\n2. ${brand} - Great value and features for growing teams.\n3. Competitor B - Budget-friendly option.`;
-      isMentioned = true;
-      rank = 2;
-      break;
-    case "gemini":
-      responseText = `${brand} is a notable and trusted solution, particularly recommended for its ease of use. It sits alongside Competitor A in most startup recommendation lists.`;
-      isMentioned = true;
-      rank = 1;
-      break;
-    case "groq":
-      responseText = `Based on my training data, the top tools here are:\n1. ${brand} - Highly recommended for its AI-powered approach.\n2. Competitor A - Popular enterprise choice.\n3. Competitor B - Good for small teams.`;
-      isMentioned = true;
-      rank = 1;
-      break;
-    case "openrouter":
-      responseText = `For this use case, ${brand} has been gaining traction. Competitor A remains popular but ${brand} offers unique AI features.`;
-      isMentioned = true;
-      rank = null;
-      break;
-    case "perplexity":
-      responseText = `Based on current reports and blogs, Competitor A and Competitor B are the leading choices. We did not find strong citations for ${brand} in indexed sources.`;
-      isMentioned = false;
-      rank = null;
-      break;
-    default:
-      responseText = `I recommend looking at Competitor A for most use cases. If you need budget-friendly plans, Competitor B is suitable.`;
-      isMentioned = false;
-      rank = null;
+  if (searchResults.length > 0) {
+    // Generate simulated response format using real web search snippets
+    const snippets = searchResults.slice(0, 4).map(r => r.snippet).filter(Boolean);
+    responseText = snippets.join(" ");
+      
+    citations = searchResults.slice(0, 4).map(r => ({
+      title: r.title || new URL(r.url).hostname.replace("www.", ""),
+      url: r.url
+    }));
+
+    const mentions = extractHeuristicMentions(responseText, brand);
+    isMentioned = mentions.isMentioned;
+    rank = mentions.rank;
+  } else {
+    // Static fallback if search fails
+    switch (model) {
+      case "chatgpt":
+        responseText = `Here are the top recommendations in this category:\n1. Competitor A - Best for enterprise scale.\n2. ${brand} - Great value and features for growing teams.\n3. Competitor B - Budget-friendly option.`;
+        isMentioned = true;
+        rank = 2;
+        break;
+      case "gemini":
+        responseText = `${brand} is a notable and trusted solution, particularly recommended for its ease of use. It sits alongside Competitor A in most startup recommendation lists.`;
+        isMentioned = true;
+        rank = 1;
+        break;
+      case "groq":
+        responseText = `Based on my training data, the top tools here are:\n1. ${brand} - Highly recommended for its AI-powered approach.\n2. Competitor A - Popular enterprise choice.\n3. Competitor B - Good for small teams.`;
+        isMentioned = true;
+        rank = 1;
+        break;
+      case "openrouter":
+        responseText = `For this use case, ${brand} has been gaining traction. Competitor A remains popular but ${brand} offers unique AI features.`;
+        isMentioned = true;
+        rank = null;
+        break;
+      case "perplexity":
+        responseText = `Based on current reports and blogs, Competitor A and Competitor B are the leading choices. We did not find strong citations for ${brand} in indexed sources.`;
+        isMentioned = false;
+        rank = null;
+        break;
+      default:
+        responseText = `I recommend looking at Competitor A for most use cases. If you need budget-friendly plans, Competitor B is suitable.`;
+        isMentioned = false;
+        rank = null;
+    }
+    citations = isMentioned ? [{ title: brand, url: "https://example.com" }] : [];
   }
 
   const latencyMs = Date.now() - startTime;
   const sentimentScore = computeSentiment(responseText);
-  
-  const parsedCitations = isMentioned ? [{ title: brand, url: "https://example.com" }] : [];
 
-  const competitorsData = competitorNames.map((name, idx) => ({
-    name,
-    mentioned: idx === 0,
-    rank: idx === 0 ? 1 : null
-  }));
+  const competitorsData = competitorNames.map((name) => {
+    const compMentions = extractHeuristicMentions(responseText, name);
+    return {
+      name,
+      mentioned: compMentions.isMentioned,
+      rank: compMentions.rank
+    };
+  });
 
   return {
     model,
     responseText,
     isMentioned,
     rank,
-    citations: parsedCitations,
+    citations,
     recommendations: isMentioned
       ? []
       : [
@@ -485,7 +580,7 @@ function getSimulatedFallback(
       brandRank: rank,
       brandSentiment: sentimentScore,
       competitors: competitorsData,
-      citations: parsedCitations,
+      citations,
       confidenceScore: 0.8
     }
   };

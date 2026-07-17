@@ -143,15 +143,16 @@ export const Route = createFileRoute("/api/prompt-audit")({
             }
           });
 
-          const auditResults = await Promise.all(auditPromises);
+          const auditResultsSettled = await Promise.allSettled(auditPromises);
+          const auditResults = auditResultsSettled.map(r => r.status === 'fulfilled' ? r.value : { model: 'unknown', error: r.reason, success: false });
           
           const runsCreated = [];
           const alertsToCreate: any[] = [];
 
           for (const res of auditResults) {
-            if (!res.success || !res.result) continue;
+            if (!res.success || !(res as any).result) continue;
             const model = res.model;
-            const result = res.result;
+            const result = (res as any).result;
 
             // Insert run result with V2 metrics (cast to any for newly added columns)
             const { data: runData, error: runErr } = await (supabase as any)

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin as supabase } from "../integrations/supabase/client.server";
+import { supabaseAdmin } from "../integrations/supabase/client.server";
+const supabase = supabaseAdmin as any;
 import { CrawlOrchestrator } from "../crawler/orchestrator";
 import { CrawlJobStatus } from "../crawler/types";
 
