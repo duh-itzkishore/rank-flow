@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin as supabase } from "@/integrations/supabase/client.server";
 import { queryAIModel } from "@/server-fns/ai-gateway";
 
 export const Route = createFileRoute("/api/prompt-audit")({
@@ -51,7 +51,34 @@ export const Route = createFileRoute("/api/prompt-audit")({
 
           // Fetch API Keys configured for this workspace
           let apiKeys: Record<string, string> = {};
+          let hasCreditLimits = false;
+          let currentUsedCredits = 0;
+          let maxCredits = 1000;
+
           if (orgId) {
+            // Check Credit Limits
+            const { data: orgData, error: orgErr } = await supabase
+              .from("organizations")
+              .select("monthly_prompt_credits, used_prompt_credits")
+              .eq("id", orgId)
+              .maybeSingle();
+
+            if (!orgErr && orgData && orgData.monthly_prompt_credits !== undefined) {
+              hasCreditLimits = true;
+              currentUsedCredits = orgData.used_prompt_credits || 0;
+              maxCredits = orgData.monthly_prompt_credits || 1000;
+
+              if (currentUsedCredits >= maxCredits) {
+                return new Response(JSON.stringify({ 
+                  success: false, 
+                  error: "Monthly prompt execution limit reached. Please upgrade your plan." 
+                }), {
+                  status: 403,
+                  headers: { "Content-Type": "application/json" },
+                });
+              }
+            }
+
             const { data: keyConfigs } = await (supabase as any)
               .from("api_key_configs")
               .select("*")
@@ -201,6 +228,14 @@ export const Route = createFileRoute("/api/prompt-audit")({
             if (alertErr) {
               console.error("Error inserting alerts:", alertErr);
             }
+          }
+
+          // Increment credits if successfully ran models
+          if (hasCreditLimits && runsCreated.length > 0) {
+            await supabase
+              .from("organizations")
+              .update({ used_prompt_credits: currentUsedCredits + 1 })
+              .eq("id", orgId);
           }
 
           return new Response(JSON.stringify({ success: true, runs: runsCreated, alertsGenerated: alertsToCreate.length }), {

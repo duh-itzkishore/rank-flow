@@ -16,14 +16,17 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppTeamRouteImport } from './routes/app.team'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
+import { Route as AppSearchRouteImport } from './routes/app.search'
 import { Route as AppProjectsRouteImport } from './routes/app.projects'
 import { Route as AppIntegrationsRouteImport } from './routes/app.integrations'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppAlertsRouteImport } from './routes/app.alerts'
+import { Route as AppAgentRouteImport } from './routes/app.agent'
 import { Route as ApiSeoAuditRouteImport } from './routes/api.seo-audit'
 import { Route as ApiRunScheduledPromptsRouteImport } from './routes/api.run-scheduled-prompts'
 import { Route as ApiPromptAuditRouteImport } from './routes/api.prompt-audit'
+import { Route as ApiGeneratePromptsRouteImport } from './routes/api.generate-prompts'
 import { Route as ApiGenerateInsightsRouteImport } from './routes/api.generate-insights'
 import { Route as AppProjectIdIndexRouteImport } from './routes/app.$projectId.index'
 import { Route as AppProjectIdSeoAuditRouteImport } from './routes/app.$projectId.seo-audit'
@@ -81,6 +84,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSearchRoute = AppSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProjectsRoute = AppProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
@@ -106,6 +114,11 @@ const AppAlertsRoute = AppAlertsRouteImport.update({
   path: '/alerts',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAgentRoute = AppAgentRouteImport.update({
+  id: '/agent',
+  path: '/agent',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiSeoAuditRoute = ApiSeoAuditRouteImport.update({
   id: '/api/seo-audit',
   path: '/api/seo-audit',
@@ -119,6 +132,11 @@ const ApiRunScheduledPromptsRoute = ApiRunScheduledPromptsRouteImport.update({
 const ApiPromptAuditRoute = ApiPromptAuditRouteImport.update({
   id: '/api/prompt-audit',
   path: '/api/prompt-audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGeneratePromptsRoute = ApiGeneratePromptsRouteImport.update({
+  id: '/api/generate-prompts',
+  path: '/api/generate-prompts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGenerateInsightsRoute = ApiGenerateInsightsRouteImport.update({
@@ -240,14 +258,17 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/api/generate-insights': typeof ApiGenerateInsightsRoute
+  '/api/generate-prompts': typeof ApiGeneratePromptsRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
+  '/app/agent': typeof AppAgentRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/billing': typeof AppBillingRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/integrations': typeof AppIntegrationsRoute
   '/app/projects': typeof AppProjectsRoute
+  '/app/search': typeof AppSearchRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app/': typeof AppIndexRoute
@@ -277,14 +298,17 @@ export interface FileRoutesByTo {
   '/analysis': typeof AnalysisRoute
   '/auth': typeof AuthRoute
   '/api/generate-insights': typeof ApiGenerateInsightsRoute
+  '/api/generate-prompts': typeof ApiGeneratePromptsRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
+  '/app/agent': typeof AppAgentRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/billing': typeof AppBillingRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/integrations': typeof AppIntegrationsRoute
   '/app/projects': typeof AppProjectsRoute
+  '/app/search': typeof AppSearchRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app': typeof AppIndexRoute
@@ -316,14 +340,17 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/api/generate-insights': typeof ApiGenerateInsightsRoute
+  '/api/generate-prompts': typeof ApiGeneratePromptsRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
+  '/app/agent': typeof AppAgentRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/billing': typeof AppBillingRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/integrations': typeof AppIntegrationsRoute
   '/app/projects': typeof AppProjectsRoute
+  '/app/search': typeof AppSearchRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app/': typeof AppIndexRoute
@@ -356,14 +383,17 @@ export interface FileRouteTypes {
     | '/app'
     | '/auth'
     | '/api/generate-insights'
+    | '/api/generate-prompts'
     | '/api/prompt-audit'
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
+    | '/app/agent'
     | '/app/alerts'
     | '/app/billing'
     | '/app/dashboard'
     | '/app/integrations'
     | '/app/projects'
+    | '/app/search'
     | '/app/settings'
     | '/app/team'
     | '/app/'
@@ -393,14 +423,17 @@ export interface FileRouteTypes {
     | '/analysis'
     | '/auth'
     | '/api/generate-insights'
+    | '/api/generate-prompts'
     | '/api/prompt-audit'
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
+    | '/app/agent'
     | '/app/alerts'
     | '/app/billing'
     | '/app/dashboard'
     | '/app/integrations'
     | '/app/projects'
+    | '/app/search'
     | '/app/settings'
     | '/app/team'
     | '/app'
@@ -431,14 +464,17 @@ export interface FileRouteTypes {
     | '/app'
     | '/auth'
     | '/api/generate-insights'
+    | '/api/generate-prompts'
     | '/api/prompt-audit'
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
+    | '/app/agent'
     | '/app/alerts'
     | '/app/billing'
     | '/app/dashboard'
     | '/app/integrations'
     | '/app/projects'
+    | '/app/search'
     | '/app/settings'
     | '/app/team'
     | '/app/'
@@ -470,6 +506,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiGenerateInsightsRoute: typeof ApiGenerateInsightsRoute
+  ApiGeneratePromptsRoute: typeof ApiGeneratePromptsRoute
   ApiPromptAuditRoute: typeof ApiPromptAuditRoute
   ApiRunScheduledPromptsRoute: typeof ApiRunScheduledPromptsRoute
   ApiSeoAuditRoute: typeof ApiSeoAuditRoute
@@ -527,6 +564,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/search': {
+      id: '/app/search'
+      path: '/search'
+      fullPath: '/app/search'
+      preLoaderRoute: typeof AppSearchRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/projects': {
       id: '/app/projects'
       path: '/projects'
@@ -562,6 +606,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlertsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/agent': {
+      id: '/app/agent'
+      path: '/agent'
+      fullPath: '/app/agent'
+      preLoaderRoute: typeof AppAgentRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/seo-audit': {
       id: '/api/seo-audit'
       path: '/api/seo-audit'
@@ -581,6 +632,13 @@ declare module '@tanstack/react-router' {
       path: '/api/prompt-audit'
       fullPath: '/api/prompt-audit'
       preLoaderRoute: typeof ApiPromptAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/generate-prompts': {
+      id: '/api/generate-prompts'
+      path: '/api/generate-prompts'
+      fullPath: '/api/generate-prompts'
+      preLoaderRoute: typeof ApiGeneratePromptsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/generate-insights': {
@@ -753,11 +811,13 @@ const AppProjectIdReportsRouteWithChildren =
   AppProjectIdReportsRoute._addFileChildren(AppProjectIdReportsRouteChildren)
 
 interface AppRouteChildren {
+  AppAgentRoute: typeof AppAgentRoute
   AppAlertsRoute: typeof AppAlertsRoute
   AppBillingRoute: typeof AppBillingRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppIntegrationsRoute: typeof AppIntegrationsRoute
   AppProjectsRoute: typeof AppProjectsRoute
+  AppSearchRoute: typeof AppSearchRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppTeamRoute: typeof AppTeamRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -778,11 +838,13 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAgentRoute: AppAgentRoute,
   AppAlertsRoute: AppAlertsRoute,
   AppBillingRoute: AppBillingRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppIntegrationsRoute: AppIntegrationsRoute,
   AppProjectsRoute: AppProjectsRoute,
+  AppSearchRoute: AppSearchRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppTeamRoute: AppTeamRoute,
   AppIndexRoute: AppIndexRoute,
@@ -810,6 +872,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiGenerateInsightsRoute: ApiGenerateInsightsRoute,
+  ApiGeneratePromptsRoute: ApiGeneratePromptsRoute,
   ApiPromptAuditRoute: ApiPromptAuditRoute,
   ApiRunScheduledPromptsRoute: ApiRunScheduledPromptsRoute,
   ApiSeoAuditRoute: ApiSeoAuditRoute,
