@@ -57,7 +57,7 @@ export const Route = createFileRoute("/api/prompt-audit")({
 
           if (orgId) {
             // Check Credit Limits
-            const { data: orgData, error: orgErr } = await supabase
+            const { data: orgData, error: orgErr } = await (supabase as any)
               .from("organizations")
               .select("monthly_prompt_credits, used_prompt_credits")
               .eq("id", orgId)
@@ -106,6 +106,13 @@ export const Route = createFileRoute("/api/prompt-audit")({
             }
           }
 
+          // Fetch competitors for the project
+          const { data: competitors } = await (supabase as any)
+            .from("competitors")
+            .select("name, domain")
+            .eq("project_id", projectId);
+          const competitorNames = (competitors || []).map((c: any) => c.name);
+
           // Build dynamic model list — always include core models, add free models if keys are configured
           const coreModels = ["chatgpt", "gemini", "perplexity", "claude"];
           const freeModels = ["groq", "openrouter"];
@@ -114,23 +121,37 @@ export const Route = createFileRoute("/api/prompt-audit")({
             ...coreModels,
             ...freeModels.filter((m) => !!apiKeys[m]),
           ];
-          const runsCreated = [];
-          const alertsToCreate: any[] = [];
 
-          for (const model of models) {
-            // Map gateway model names → api_key_configs provider ids
+          // Run gateways in parallel
+          const auditPromises = models.map(async (model) => {
             const providerIdMap: Record<string, string> = {
               chatgpt:    "openai",
               claude:     "anthropic",
-              gemini:     "gemini",   // fixed: was "google"
+              gemini:     "gemini",
               perplexity: "perplexity",
               groq:       "groq",
               openrouter: "openrouter",
             };
             const providerKey = apiKeys[providerIdMap[model]] || null;
 
-            // Query live AI model via Gateway
-            const result = await queryAIModel(model, promptText, brandName, providerKey);
+            try {
+              const result = await queryAIModel(model, promptText, brandName, providerKey, competitorNames);
+              return { model, result, success: true };
+            } catch (err) {
+              console.error(`Error querying model ${model}:`, err);
+              return { model, error: String(err), success: false };
+            }
+          });
+
+          const auditResults = await Promise.all(auditPromises);
+          
+          const runsCreated = [];
+          const alertsToCreate: any[] = [];
+
+          for (const res of auditResults) {
+            if (!res.success || !res.result) continue;
+            const model = res.model;
+            const result = res.result;
 
             // Insert run result with V2 metrics (cast to any for newly added columns)
             const { data: runData, error: runErr } = await (supabase as any)
@@ -147,7 +168,7 @@ export const Route = createFileRoute("/api/prompt-audit")({
                 confidence_score: result.confidenceScore,
                 tokens_used: result.tokensUsed,
                 latency_ms: result.latencyMs,
-                raw_response: { note: "Logged raw API payload" }
+                raw_response: result.rawResponse || { note: "Logged raw API payload" }
               })
               .select()
               .single();
@@ -232,7 +253,7 @@ export const Route = createFileRoute("/api/prompt-audit")({
 
           // Increment credits if successfully ran models
           if (hasCreditLimits && runsCreated.length > 0) {
-            await supabase
+            await (supabase as any)
               .from("organizations")
               .update({ used_prompt_credits: currentUsedCredits + 1 })
               .eq("id", orgId);

@@ -47,18 +47,162 @@ function computeSentiment(text: string): number {
   return Math.max(-1, Math.min(1, score));
 }
 
-// Shared system prompt for all models
-const SYSTEM_PROMPT = `You are an objective AI assistant that helps users find information about brands and products.
-When asked for recommendations or comparisons, provide a numbered list of options.
-Be factual, concise, and mention specific brands by name if they are relevant.`;
+// Shared system prompt helper for all models
+function buildSystemPrompt(brandName: string, competitorNames: string[]): string {
+  const competitorSnippet = competitorNames.length > 0 
+    ? `and these competitors: ${competitorNames.join(", ")}` 
+    : "";
+  return `You are an objective Generative Engine Optimization (GEO) audit assistant. 
+Analyze and answer the user's prompt factually, concisely, and with references/citations where appropriate.
+
+You must respond ONLY with a valid JSON object matching the following schema:
+{
+  "responseText": "The markdown-formatted text response recommending options or answering the prompt. Include bullet points, numbered lists, comparisons, and markdown URL citations where relevant.",
+  "brandMentioned": boolean, // true if the main brand \\"${brandName}\\" is mentioned in the responseText
+  "brandRank": number | null, // the 1-indexed list rank of \\"${brandName}\\" if mentioned in a list/recommendation ranking, otherwise null
+  "brandSentiment": number, // a sentiment score for \\"${brandName}\\" from -1.0 (very negative) to 1.0 (very positive). If neutral, use 0.0.
+  "competitors": Array<{
+    "name": string, // competitor name from list
+    "mentioned": boolean, // whether they are mentioned in responseText
+    "rank": number | null // their 1-indexed rank in list recommendations, or null
+  }>,
+  "citations": Array<{
+    "title": string, // name of source or domain
+    "url": string // full http/https URL of the citation reference
+  }>,
+  "confidenceScore": number // your confidence in the accuracy of facts and citations from 0.0 to 1.0
+}
+
+Analyze the prompt from the perspective of the main brand \\"${brandName}\\" ${competitorSnippet}.
+Do not include any pre-text, post-text, markdown code blocks (like \`\`\`json) outside the JSON, or other text. Return ONLY the raw JSON string.`;
+}
+
+// Extract JSON safely from potential conversational output wrappers
+function cleanAndParseJson(text: string): any {
+  let cleaned = text.trim();
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  }
+  return JSON.parse(cleaned);
+}
+
+// Process the output returned from LLM
+function parseGatewayResponse(
+  rawText: string,
+  brandName: string,
+  competitorNames: string[]
+): {
+  responseText: string;
+  isMentioned: boolean;
+  rank: number | null;
+  citations: Array<{ title: string; url: string }>;
+  sentimentScore: number;
+  confidenceScore: number;
+  competitorsData: any[];
+} {
+  try {
+    const data = cleanAndParseJson(rawText);
+    
+    const responseText = data.responseText || rawText;
+    const isMentioned = typeof data.brandMentioned === "boolean" 
+      ? data.brandMentioned 
+      : extractHeuristicMentions(responseText, brandName).isMentioned;
+      
+    const rank = typeof data.brandRank === "number" || data.brandRank === null 
+      ? data.brandRank 
+      : extractHeuristicMentions(responseText, brandName).rank;
+      
+    const sentimentScore = typeof data.brandSentiment === "number"
+      ? data.brandSentiment
+      : computeSentiment(responseText);
+
+    const confidenceScore = typeof data.confidenceScore === "number"
+      ? data.confidenceScore
+      : 0.9;
+
+    const citations: Array<{ title: string; url: string }> = [];
+    if (Array.isArray(data.citations)) {
+      data.citations.forEach((cit: any) => {
+        if (cit && cit.title && cit.url) {
+          citations.push({ title: String(cit.title), url: String(cit.url) });
+        }
+      });
+    }
+
+    // Advanced Citation regex parsing fallback (matches markdown links AND raw urls)
+    if (citations.length === 0) {
+      const markdownRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g;
+      let match;
+      while ((match = markdownRegex.exec(responseText)) !== null) {
+        citations.push({ title: match[1], url: match[2] });
+      }
+
+      // Also capture any raw URLs that weren't markdown links
+      const rawUrlRegex = /(?<!\()https?:\/\/[^\s\)]+/g;
+      const rawMatches = responseText.match(rawUrlRegex);
+      if (rawMatches) {
+        rawMatches.forEach((url: string) => {
+          // avoid duplicate domain citations
+          const domain = new URL(url).hostname.replace("www.", "");
+          if (!citations.some((c) => c.url === url)) {
+            citations.push({ title: domain, url });
+          }
+        });
+      }
+    }
+
+    const competitorsData = Array.isArray(data.competitors) ? data.competitors : [];
+
+    return {
+      responseText,
+      isMentioned,
+      rank,
+      citations,
+      sentimentScore,
+      confidenceScore,
+      competitorsData
+    };
+  } catch (err) {
+    console.warn("Structured JSON parsing failed, using heuristic fallback:", err);
+    const { isMentioned, rank } = extractHeuristicMentions(rawText, brandName);
+    const sentimentScore = computeSentiment(rawText);
+    
+    const citations: Array<{ title: string; url: string }> = [];
+    const markdownRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g;
+    let match;
+    while ((match = markdownRegex.exec(rawText)) !== null) {
+      citations.push({ title: match[1], url: match[2] });
+    }
+
+    return {
+      responseText: rawText,
+      isMentioned,
+      rank,
+      citations,
+      sentimentScore,
+      confidenceScore: 0.8,
+      competitorsData: competitorNames.map(name => {
+        const compMentions = extractHeuristicMentions(rawText, name);
+        return {
+          name,
+          mentioned: compMentions.isMentioned,
+          rank: compMentions.rank
+        };
+      })
+    };
+  }
+}
 
 // General query model function
 export async function queryAIModel(
   model: string,
   promptText: string,
   brandName: string,
-  apiKey: string | null
-): Promise<ModelResponse> {
+  apiKey: string | null,
+  competitorNames: string[] = []
+): Promise<ModelResponse & { rawResponse?: any }> {
   const startTime = Date.now();
   let responseText = "";
   let tokensUsed = 0;
@@ -66,8 +210,10 @@ export async function queryAIModel(
   const actualKey = apiKey || getEnvKey(model);
 
   if (!actualKey) {
-    return getSimulatedFallback(model, promptText, brandName, startTime);
+    return getSimulatedFallback(model, promptText, brandName, startTime, competitorNames);
   }
+
+  const systemPrompt = buildSystemPrompt(brandName, competitorNames);
 
   try {
     // ── OpenAI (ChatGPT) ─────────────────────────────────────
@@ -80,8 +226,9 @@ export async function queryAIModel(
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
+          response_format: { type: "json_object" },
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             { role: "user", content: promptText },
           ],
         }),
@@ -102,8 +249,8 @@ export async function queryAIModel(
         },
         body: JSON.stringify({
           model: "claude-3-haiku-20240307",
-          max_tokens: 1024,
-          system: SYSTEM_PROMPT,
+          max_tokens: 1536,
+          system: systemPrompt,
           messages: [{ role: "user", content: promptText }],
         }),
       });
@@ -120,9 +267,13 @@ export async function queryAIModel(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            system_instruction: { parts: [{ text: systemPrompt }] },
             contents: [{ parts: [{ text: promptText }] }],
-            generationConfig: { maxOutputTokens: 1024, temperature: 0.7 },
+            generationConfig: { 
+              maxOutputTokens: 1536, 
+              temperature: 0.7,
+              responseMimeType: "application/json"
+            },
           }),
         }
       );
@@ -141,8 +292,9 @@ export async function queryAIModel(
         },
         body: JSON.stringify({
           model: "llama-3.1-sonar-small-128k-online",
+          response_format: { type: "json_object" },
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             { role: "user", content: promptText },
           ],
         }),
@@ -162,11 +314,12 @@ export async function queryAIModel(
         },
         body: JSON.stringify({
           model: "llama-3.3-70b-versatile",
+          response_format: { type: "json_object" },
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             { role: "user", content: promptText },
           ],
-          max_tokens: 1024,
+          max_tokens: 1536,
           temperature: 0.7,
         }),
       });
@@ -186,13 +339,13 @@ export async function queryAIModel(
           "X-Title": "RankFlow AI Brand Monitor",
         },
         body: JSON.stringify({
-          // meta-llama/llama-3.2-3b-instruct:free is always free on OpenRouter
           model: "meta-llama/llama-3.2-3b-instruct:free",
+          response_format: { type: "json_object" },
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             { role: "user", content: promptText },
           ],
-          max_tokens: 1024,
+          max_tokens: 1536,
         }),
       });
       const data = await res.json();
@@ -202,24 +355,15 @@ export async function queryAIModel(
     }
 
     const latencyMs = Date.now() - startTime;
-    const { isMentioned, rank } = extractHeuristicMentions(responseText, brandName);
-    const sentimentScore = computeSentiment(responseText);
-
-    // Extract citation links from markdown URLs in response
-    const urlRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g;
-    const citations: Array<{ title: string; url: string }> = [];
-    let match;
-    while ((match = urlRegex.exec(responseText)) !== null) {
-      citations.push({ title: match[1], url: match[2] });
-    }
+    const parsed = parseGatewayResponse(responseText, brandName, competitorNames);
 
     return {
       model,
-      responseText,
-      isMentioned,
-      rank,
-      citations,
-      recommendations: isMentioned
+      responseText: parsed.responseText,
+      isMentioned: parsed.isMentioned,
+      rank: parsed.rank,
+      citations: parsed.citations,
+      recommendations: parsed.isMentioned
         ? []
         : [
             {
@@ -228,14 +372,23 @@ export async function queryAIModel(
               action: `Optimize your page content around terms matching this prompt to improve ${model} visibility.`,
             },
           ],
-      sentimentScore,
-      confidenceScore: 0.9,
+      sentimentScore: parsed.sentimentScore,
+      confidenceScore: parsed.confidenceScore,
       tokensUsed,
       latencyMs,
+      rawResponse: {
+        responseText: parsed.responseText,
+        brandMentioned: parsed.isMentioned,
+        brandRank: parsed.rank,
+        brandSentiment: parsed.sentimentScore,
+        competitors: parsed.competitorsData,
+        citations: parsed.citations,
+        confidenceScore: parsed.confidenceScore
+      }
     };
   } catch (err) {
     console.error(`Error fetching real API for ${model}:`, err);
-    return getSimulatedFallback(model, promptText, brandName, startTime);
+    return getSimulatedFallback(model, promptText, brandName, startTime, competitorNames);
   }
 }
 
@@ -252,7 +405,13 @@ function getEnvKey(model: string): string | undefined {
   }
 }
 
-function getSimulatedFallback(model: string, _promptText: string, brandName: string, startTime: number): ModelResponse {
+function getSimulatedFallback(
+  model: string, 
+  _promptText: string, 
+  brandName: string, 
+  startTime: number,
+  competitorNames: string[] = []
+): ModelResponse & { rawResponse?: any } {
   const brand = brandName || "Your Brand";
   let responseText = "";
   let isMentioned = false;
@@ -292,13 +451,21 @@ function getSimulatedFallback(model: string, _promptText: string, brandName: str
 
   const latencyMs = Date.now() - startTime;
   const sentimentScore = computeSentiment(responseText);
+  
+  const parsedCitations = isMentioned ? [{ title: brand, url: "https://example.com" }] : [];
+
+  const competitorsData = competitorNames.map((name, idx) => ({
+    name,
+    mentioned: idx === 0,
+    rank: idx === 0 ? 1 : null
+  }));
 
   return {
     model,
     responseText,
     isMentioned,
     rank,
-    citations: isMentioned ? [{ title: brand, url: "https://example.com" }] : [],
+    citations: parsedCitations,
     recommendations: isMentioned
       ? []
       : [
@@ -312,5 +479,14 @@ function getSimulatedFallback(model: string, _promptText: string, brandName: str
     confidenceScore: 0.8,
     tokensUsed: 150,
     latencyMs,
+    rawResponse: {
+      responseText,
+      brandMentioned: isMentioned,
+      brandRank: rank,
+      brandSentiment: sentimentScore,
+      competitors: competitorsData,
+      citations: parsedCitations,
+      confidenceScore: 0.8
+    }
   };
 }
