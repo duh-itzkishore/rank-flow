@@ -78,11 +78,13 @@ export const Route = createFileRoute("/api/prompt-audit")({
                 });
               }
             }
+          }
 
+          if (projectId) {
             const { data: keyConfigs } = await (supabase as any)
               .from("api_key_configs")
               .select("*")
-              .eq("org_id", orgId);
+              .eq("project_id", projectId);
             
             if (keyConfigs) {
               keyConfigs.forEach((c: any) => {

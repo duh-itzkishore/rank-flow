@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Shield, Key, Settings as SettingsIcon, Building, Lock, AlertTriangle, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Shield, Settings as SettingsIcon, Building, Lock, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -8,65 +8,6 @@ import { getUserSettings, updateUserSettings } from "@/integrations/supabase/que
 export const Route = createFileRoute("/app/settings")({
   component: Settings,
 });
-
-const AI_PROVIDERS = [
-  // ── FREE providers (start here!) ──────────────
-  {
-    id: "gemini",
-    label: "Google Gemini",
-    models: "Gemini 1.5 Flash — FREE (1,500 req/day)",
-    docsUrl: "https://aistudio.google.com/app/apikey",
-    placeholder: "AIzaSy...",
-    color: "#4285f4",
-    isFree: true,
-  },
-  {
-    id: "groq",
-    label: "Groq",
-    models: "Llama 3.3 70B — FREE (30 req/min)",
-    docsUrl: "https://console.groq.com/keys",
-    placeholder: "gsk_...",
-    color: "#f97316",
-    isFree: true,
-  },
-  {
-    id: "openrouter",
-    label: "OpenRouter",
-    models: "Llama 3.2, Gemma, Mistral — FREE models available",
-    docsUrl: "https://openrouter.ai/keys",
-    placeholder: "sk-or-v1-...",
-    color: "#8b5cf6",
-    isFree: true,
-  },
-  // ── Paid providers ─────────────────────────────
-  {
-    id: "openai",
-    label: "OpenAI",
-    models: "GPT-4o-mini, GPT-4o (paid)",
-    docsUrl: "https://platform.openai.com/api-keys",
-    placeholder: "sk-proj-...",
-    color: "#10a37f",
-    isFree: false,
-  },
-  {
-    id: "anthropic",
-    label: "Anthropic",
-    models: "Claude 3.5 Sonnet, Claude Haiku (paid)",
-    docsUrl: "https://console.anthropic.com/settings/keys",
-    placeholder: "sk-ant-api03-...",
-    color: "#d97757",
-    isFree: false,
-  },
-  {
-    id: "perplexity",
-    label: "Perplexity AI",
-    models: "Sonar Large — Online web search (paid)",
-    docsUrl: "https://www.perplexity.ai/settings/api",
-    placeholder: "pplx-...",
-    color: "#20b2aa",
-    isFree: false,
-  },
-];
 
 function Settings() {
   const [user, setUser] = useState<any>(null);
@@ -81,11 +22,6 @@ function Settings() {
   const [saving, setSaving] = useState(false);
   const [newPassword, setNewPassword] = useState("");
 
-  // API Key state
-  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
-  const [savedProviders, setSavedProviders] = useState<Set<string>>(new Set());
-  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
-  const [savingKey, setSavingKey] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadSettings() {
@@ -160,21 +96,6 @@ function Settings() {
 
         if (orgData) {
           setOrg(orgData);
-          const { data: keyConfigs } = await (supabase as any)
-            .from("api_key_configs")
-            .select("provider, encrypted_key")
-            .eq("org_id", orgData.id);
-
-          if (keyConfigs?.length) {
-            const keyMap: Record<string, string> = {};
-            const saved = new Set<string>();
-            keyConfigs.forEach((c: any) => {
-              keyMap[c.provider] = c.encrypted_key;
-              saved.add(c.provider);
-            });
-            setApiKeys(keyMap);
-            setSavedProviders(saved);
-          }
         }
 
         const { data: settingsData } = await getUserSettings(authData.user.id);
@@ -242,43 +163,6 @@ function Settings() {
     }
   };
 
-  const handleSaveApiKey = async (providerId: string) => {
-    const keyValue = (apiKeys[providerId] || "").trim();
-    if (!keyValue) { toast.error("Please enter a valid API key."); return; }
-    if (!org.id) { toast.error("Workspace not found."); return; }
-    setSavingKey(providerId);
-    try {
-      const { error } = await (supabase as any)
-        .from("api_key_configs")
-        .upsert(
-          { org_id: org.id, provider: providerId, encrypted_key: keyValue, is_active: true },
-          { onConflict: "org_id,provider" }
-        );
-      if (error) throw error;
-      setSavedProviders((prev) => new Set([...prev, providerId]));
-      toast.success(`${AI_PROVIDERS.find((p) => p.id === providerId)?.label} key saved!`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save API key.");
-    } finally {
-      setSavingKey(null);
-    }
-  };
-
-  const handleRemoveApiKey = async (providerId: string) => {
-    if (!org.id) return;
-    try {
-      await (supabase as any)
-        .from("api_key_configs")
-        .delete()
-        .eq("org_id", org.id)
-        .eq("provider", providerId);
-      setApiKeys((prev) => { const n = { ...prev }; delete n[providerId]; return n; });
-      setSavedProviders((prev) => { const s = new Set(prev); s.delete(providerId); return s; });
-      toast.success("API key removed.");
-    } catch {
-      toast.error("Failed to remove key.");
-    }
-  };
 
   if (loading) return <div className="text-white/50 text-sm p-8">Loading settings...</div>;
 
@@ -355,105 +239,6 @@ function Settings() {
           >
             Save Workspace
           </button>
-        </section>
-
-        {/* ── AI Provider API Keys ─────────────── */}
-        <section className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-6">
-          <h2 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
-            <Key className="w-4 h-4 text-indigo-400" /> AI Provider API Keys
-          </h2>
-          <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-emerald-500/[0.06] ring-1 ring-emerald-500/20">
-            <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">🎉 Start Free</span>
-            <p className="text-xs text-emerald-300/70">
-              Use <strong>Google Gemini</strong>, <strong>Groq</strong>, or <strong>OpenRouter</strong> — all have generous free tiers. No credit card needed.
-            </p>
-          </div>
-          <p className="text-xs text-white/35 mb-4 leading-relaxed">
-            Keys are stored securely per workspace in the database. Without keys, audits run in simulation mode.
-          </p>
-          <div className="space-y-3">
-            {AI_PROVIDERS.map((provider) => {
-              const isSaved = savedProviders.has(provider.id);
-              const keyVal = apiKeys[provider.id] || "";
-              const isVisible = showKeys[provider.id];
-              const isSavingThis = savingKey === provider.id;
-              return (
-                <div
-                  key={provider.id}
-                  className={`rounded-xl ring-1 p-4 transition-colors ${
-                    isSaved
-                      ? "bg-emerald-500/[0.03] ring-emerald-500/20"
-                      : "bg-white/[0.02] ring-white/[0.05]"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: provider.color }} />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm font-semibold text-white">{provider.label}</div>
-                          {provider.isFree && (
-                            <span className="text-[9px] bg-emerald-500/15 text-emerald-400 font-bold px-1.5 py-0.5 rounded-full ring-1 ring-emerald-500/30 uppercase tracking-wider">
-                              FREE
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-white/30">{provider.models}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {isSaved && (
-                        <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-semibold">
-                          <CheckCircle2 className="w-3 h-3" /> Connected
-                        </span>
-                      )}
-                      <a
-                        href={provider.docsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors"
-                      >
-                        Get API Key ↗
-                      </a>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type={isVisible ? "text" : "password"}
-                        value={keyVal}
-                        onChange={(e) => setApiKeys({ ...apiKeys, [provider.id]: e.target.value })}
-                        placeholder={provider.placeholder}
-                        className="w-full rounded-lg bg-white/[0.04] border border-white/5 px-3 py-2 pr-9 text-sm text-white/80 font-mono placeholder-white/20 outline-none focus:border-indigo-500/40 transition-colors"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowKeys({ ...showKeys, [provider.id]: !isVisible })}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                      >
-                        {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => handleSaveApiKey(provider.id)}
-                      disabled={isSavingThis || !keyVal.trim()}
-                      className="rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors disabled:opacity-40 whitespace-nowrap"
-                    >
-                      {isSavingThis ? "Saving…" : isSaved ? "Update" : "Save Key"}
-                    </button>
-                    {isSaved && (
-                      <button
-                        onClick={() => handleRemoveApiKey(provider.id)}
-                        className="rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 text-xs font-semibold hover:bg-red-500/20 transition-colors"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </section>
 
         {/* ── Security ────────────────────────── */}

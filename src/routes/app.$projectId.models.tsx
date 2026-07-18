@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Bot, TrendingUp, TrendingDown, Info, Clock, DollarSign, Heart, ShieldAlert } from "lucide-react";
+import { Loader2, Bot, TrendingUp, TrendingDown, Info, Clock, DollarSign, Heart, ShieldAlert, Key, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip } from "recharts";
@@ -8,6 +8,41 @@ import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tool
 export const Route = createFileRoute("/app/$projectId/models")({
   component: AIModels,
 });
+
+const AI_PROVIDERS = [
+  {
+    id: "openai",
+    label: "OpenAI",
+    models: "GPT-4o-mini, GPT-4o",
+    docsUrl: "https://platform.openai.com/api-keys",
+    placeholder: "sk-proj-...",
+    color: "#10a37f",
+  },
+  {
+    id: "gemini",
+    label: "Google Gemini",
+    models: "Gemini 1.5 Flash",
+    docsUrl: "https://aistudio.google.com/app/apikey",
+    placeholder: "AIzaSy...",
+    color: "#4285f4",
+  },
+  {
+    id: "anthropic",
+    label: "Anthropic",
+    models: "Claude 3.5 Sonnet, Claude Haiku",
+    docsUrl: "https://console.anthropic.com/settings/keys",
+    placeholder: "sk-ant-api03-...",
+    color: "#c85a2a",
+  },
+  {
+    id: "perplexity",
+    label: "Perplexity AI",
+    models: "Sonar Large (web search)",
+    docsUrl: "https://www.perplexity.ai/settings/api",
+    placeholder: "pplx-...",
+    color: "#7c3aed",
+  },
+];
 
 const MODELS = [
   {
@@ -84,16 +119,91 @@ type ModelStats = {
 };
 
 function AIModels() {
+  const { projectId } = Route.useParams();
   const [stats, setStats] = useState<Record<string, ModelStats>>({});
   const [loading, setLoading] = useState(true);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [recentRuns, setRecentRuns] = useState<any[]>([]);
-  const [bottomTab, setBottomTab] = useState<"logs" | "hallucinations">("logs");
+  const [bottomTab, setBottomTab] = useState<"logs" | "hallucinations" | "api-keys">("logs");
   const [hallucinations, setHallucinations] = useState<any[]>([]);
+
+  // API Key configuration state
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+  const [savedProviders, setSavedProviders] = useState<Set<string>>(new Set());
+  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
+  const [savingKey, setSavingKey] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStats();
-  }, []);
+    fetchApiKeys();
+  }, [projectId]);
+
+  const fetchApiKeys = async () => {
+    if (!projectId) return;
+    try {
+      const { data: keyConfigs, error } = await (supabase as any)
+        .from("api_key_configs")
+        .select("provider, encrypted_key")
+        .eq("project_id", projectId);
+
+      if (error) throw error;
+
+      if (keyConfigs?.length) {
+        const keyMap: Record<string, string> = {};
+        const saved = new Set<string>();
+        keyConfigs.forEach((c: any) => {
+          keyMap[c.provider] = c.encrypted_key;
+          saved.add(c.provider);
+        });
+        setApiKeys(keyMap);
+        setSavedProviders(saved);
+      } else {
+        setApiKeys({});
+        setSavedProviders(new Set());
+      }
+    } catch (err) {
+      console.error("Failed to load API keys", err);
+    }
+  };
+
+  const handleSaveApiKey = async (providerId: string) => {
+    const keyValue = (apiKeys[providerId] || "").trim();
+    if (!keyValue) { toast.error("Please enter a valid API key."); return; }
+    if (!projectId) { toast.error("Project not found."); return; }
+    setSavingKey(providerId);
+    try {
+      const { error } = await (supabase as any)
+        .from("api_key_configs")
+        .upsert(
+          { project_id: projectId, provider: providerId, encrypted_key: keyValue, is_active: true },
+          { onConflict: "project_id,provider" }
+        );
+      if (error) throw error;
+      setSavedProviders((prev) => new Set([...prev, providerId]));
+      toast.success(`${AI_PROVIDERS.find((p) => p.id === providerId)?.label} key saved!`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save API key.");
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const handleRemoveApiKey = async (providerId: string) => {
+    if (!projectId) return;
+    try {
+      const { error } = await (supabase as any)
+        .from("api_key_configs")
+        .delete()
+        .eq("project_id", projectId)
+        .eq("provider", providerId);
+      if (error) throw error;
+      setApiKeys((prev) => { const n = { ...prev }; delete n[providerId]; return n; });
+      setSavedProviders((prev) => { const s = new Set(prev); s.delete(providerId); return s; });
+      toast.success("API key removed.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove key.");
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -315,6 +425,12 @@ function AIModels() {
                 >
                   Hallucination Monitor ({hallucinations.length})
                 </button>
+                <button 
+                  onClick={() => setBottomTab("api-keys")}
+                  className={`text-xs font-semibold pb-2 border-b-2 transition-all ${bottomTab === "api-keys" ? "border-indigo-500 text-white" : "border-transparent text-white/40"}`}
+                >
+                  API Keys
+                </button>
               </div>
             </div>
 
@@ -334,7 +450,7 @@ function AIModels() {
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {recentRuns.map((r, i) => (
-                      <tr key={i} className="text-white/70 hover:bg-white/[0.02]">
+                       <tr key={i} className="text-white/70 hover:bg-white/[0.02]">
                         <td className="py-2.5">{new Date(r.created_at).toLocaleTimeString()}</td>
                         <td className="py-2.5 font-medium text-white">{r.model}</td>
                         <td className="py-2.5">
@@ -356,7 +472,7 @@ function AIModels() {
                   </tbody>
                 </table>
               </div>
-            ) : (
+            ) : bottomTab === "hallucinations" ? (
               <div className="space-y-3">
                 {hallucinations.map((h) => (
                   <div key={h.id} className="rounded-xl bg-red-950/10 border border-red-900/20 p-4 flex items-start gap-3">
@@ -373,6 +489,95 @@ function AIModels() {
                     No hallucination patterns detected in recent scans.
                   </div>
                 )}
+              </div>
+            ) : (
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-indigo-500/[0.06] ring-1 ring-indigo-500/20 max-w-2xl">
+                  <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Key className="w-3.5 h-3.5" /> Project-Specific API Keys
+                  </span>
+                  <p className="text-xs text-indigo-300/70">
+                    These keys configure real AI model audits for this project. Without keys, scans run in Wikipedia/SerpAPI simulation mode.
+                  </p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {AI_PROVIDERS.map((provider) => {
+                    const isSaved = savedProviders.has(provider.id);
+                    const keyVal = apiKeys[provider.id] || "";
+                    const isVisible = showKeys[provider.id];
+                    const isSavingThis = savingKey === provider.id;
+                    return (
+                      <div
+                        key={provider.id}
+                        className={`rounded-xl border p-4 transition-colors ${
+                          isSaved
+                            ? "bg-emerald-500/[0.02] border-emerald-500/20"
+                            : "bg-white/[0.02] border-white/[0.05]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: provider.color }} />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-sm font-semibold text-white">{provider.label}</div>
+                              </div>
+                              <div className="text-[10px] text-white/30">{provider.models}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2.5">
+                            {isSaved && (
+                              <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-semibold">
+                                <CheckCircle2 className="w-3 h-3" /> Connected
+                              </span>
+                            )}
+                            <a
+                              href={provider.docsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors"
+                            >
+                              Get Key ↗
+                            </a>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <input
+                              type={isVisible ? "text" : "password"}
+                              value={keyVal}
+                              onChange={(e) => setApiKeys({ ...apiKeys, [provider.id]: e.target.value })}
+                              placeholder={provider.placeholder}
+                              className="w-full rounded-lg bg-white/[0.04] border border-white/5 px-3 py-2 pr-9 text-sm text-white/80 font-mono placeholder-white/20 outline-none focus:border-indigo-500/40 transition-colors"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowKeys({ ...showKeys, [provider.id]: !isVisible })}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                            >
+                              {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => handleSaveApiKey(provider.id)}
+                            disabled={isSavingThis || !keyVal.trim()}
+                            className="rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors disabled:opacity-40 whitespace-nowrap"
+                          >
+                            {isSavingThis ? "Saving…" : isSaved ? "Update" : "Save Key"}
+                          </button>
+                          {isSaved && (
+                            <button
+                              onClick={() => handleRemoveApiKey(provider.id)}
+                              className="rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 text-xs font-semibold hover:bg-red-500/20 transition-colors"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
