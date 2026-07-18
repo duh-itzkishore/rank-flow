@@ -39,7 +39,11 @@ function AuthPage() {
       return;
     }
     toast.success("Welcome back");
-    navigate({ to: "/app/dashboard", search: website ? { website } : undefined });
+    if (website) {
+      navigate({ to: "/app/search", search: { q: website } });
+    } else {
+      navigate({ to: "/app/dashboard" });
+    }
   };
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -60,7 +64,11 @@ function AuthPage() {
       return;
     }
     toast.success("Account created — check your email if confirmation is required.");
-    navigate({ to: "/app/dashboard", search: website ? { website } : undefined });
+    if (website) {
+      navigate({ to: "/app/search", search: { q: website } });
+    } else {
+      navigate({ to: "/app/dashboard" });
+    }
   };
 
   return (

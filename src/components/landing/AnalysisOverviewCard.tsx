@@ -11,11 +11,12 @@ interface AnalysisOverviewCardProps {
   url: string;
   isLoggedIn?: boolean;
   onClose?: () => void;
+  inline?: boolean;
 }
 
 type TabType = 'overview' | 'ai-visibility' | 'ai-access' | 'content' | 'schema' | 'llms';
 
-export function AnalysisOverviewCard({ url, isLoggedIn: propIsLoggedIn, onClose }: AnalysisOverviewCardProps) {
+export function AnalysisOverviewCard({ url, isLoggedIn: propIsLoggedIn, onClose, inline }: AnalysisOverviewCardProps) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,46 +67,54 @@ export function AnalysisOverviewCard({ url, isLoggedIn: propIsLoggedIn, onClose 
   }, [url]);
 
   if (loading) {
+    const LoaderContent = () => (
+      <div className="bg-[#07070a]/95 border border-white/10 rounded-2xl p-12 flex flex-col items-center justify-center shadow-2xl max-w-md w-full animate-pulse relative mx-auto my-12">
+        {onClose && !inline && (
+          <button onClick={onClose} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-lg transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        )}
+        <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
+          <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin"></div>
+          <Search className="w-8 h-8 text-indigo-400" />
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">Analyzing {url}...</h3>
+        <p className="text-gray-400 text-center text-sm">
+          Please wait while our agent crawls the page, parses AI bots access, and evaluates AEO metrics. This deep scan takes about 5-10 seconds.
+        </p>
+      </div>
+    );
+    if (inline) return <LoaderContent />;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-        <div className="bg-[#07070a]/95 border border-white/10 rounded-2xl p-12 flex flex-col items-center justify-center shadow-2xl max-w-md w-full animate-pulse relative">
-          {onClose && (
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-lg transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          )}
-          <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
-            <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin"></div>
-            <Search className="w-8 h-8 text-indigo-400" />
-          </div>
-          <h3 className="text-xl font-bold text-white mb-2">Analyzing {url}...</h3>
-          <p className="text-gray-400 text-center text-sm">
-            Please wait while our agent crawls the page, parses AI bots access, and evaluates AEO metrics. This deep scan takes about 5-10 seconds.
-          </p>
-        </div>
+        <LoaderContent />
       </div>
     );
   }
 
   if (error) {
+    const ErrorContent = () => (
+      <div className="flex flex-col items-center justify-center p-12 bg-[#0e0e12] rounded-2xl border border-red-500/20 text-center relative max-w-md w-full shadow-2xl mx-auto my-12">
+        {onClose && !inline && (
+          <button onClick={onClose} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        )}
+        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+        <h3 className="text-xl font-semibold text-white mb-2">Analysis Failed</h3>
+        <p className="text-gray-400 mb-6">{error}</p>
+        {onClose ? (
+          <button onClick={onClose} className="text-indigo-400 hover:text-indigo-300 font-medium">Try another URL</button>
+        ) : (
+          <Link to="/" className="text-indigo-400 hover:text-indigo-300 font-medium">Try another URL</Link>
+        )}
+      </div>
+    );
+    if (inline) return <ErrorContent />;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-        <div className="flex flex-col items-center justify-center p-12 bg-[#0e0e12] rounded-2xl border border-red-500/20 text-center relative max-w-md w-full shadow-2xl">
-          {onClose && (
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          )}
-          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">Analysis Failed</h3>
-          <p className="text-gray-400 mb-6">{error}</p>
-          {onClose ? (
-            <button onClick={onClose} className="text-indigo-400 hover:text-indigo-300 font-medium">Try another URL</button>
-          ) : (
-            <Link to="/" className="text-indigo-400 hover:text-indigo-300 font-medium">Try another URL</Link>
-          )}
-        </div>
+        <ErrorContent />
       </div>
     );
   }
@@ -133,8 +142,8 @@ export function AnalysisOverviewCard({ url, isLoggedIn: propIsLoggedIn, onClose 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md overflow-hidden">
-      <div className="w-full max-w-5xl mx-auto bg-[#0a0a0f] border border-white/10 rounded-xl overflow-hidden shadow-2xl flex flex-col h-[85vh]">
+    <div className={inline ? "w-full" : "fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md overflow-hidden"}>
+      <div className={`w-full max-w-5xl mx-auto bg-[#0a0a0f] border border-white/10 rounded-xl overflow-hidden shadow-2xl flex flex-col ${inline ? "h-[600px] border-0 bg-transparent" : "h-[85vh]"}`}>
         
         {/* Header & URL */}
         <div className="shrink-0 p-4 border-b border-white/5 bg-[#12121a] flex items-center justify-between">
@@ -149,7 +158,7 @@ export function AnalysisOverviewCard({ url, isLoggedIn: propIsLoggedIn, onClose 
           </div>
           <div className="flex items-center gap-3">
             {!isLoggedIn && (
-              <Link to="/auth" className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-md transition-colors">
+              <Link to="/auth" search={{ website: url }} className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-md transition-colors">
                 Sign In to Unlock
               </Link>
             )}
@@ -194,10 +203,10 @@ export function AnalysisOverviewCard({ url, isLoggedIn: propIsLoggedIn, onClose 
                 Sign in to your RankFlow account to access deep-dive metrics on AI visibility, crawler access rules, content readability, and schema validation.
               </p>
               <div className="flex gap-4 w-full">
-                <Link to="/auth" className="flex-1 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg transition-colors">
+                <Link to="/auth" search={{ website: url }} className="flex-1 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg transition-colors">
                   Sign In
                 </Link>
-                <Link to="/auth" className="flex-1 px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white font-medium rounded-lg border border-white/10 transition-colors">
+                <Link to="/auth" search={{ website: url }} className="flex-1 px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white font-medium rounded-lg border border-white/10 transition-colors">
                   Create Account
                 </Link>
               </div>
