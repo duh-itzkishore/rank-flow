@@ -36,13 +36,13 @@ import { Route as AppProjectIdPromptsRouteImport } from './routes/app.$projectId
 import { Route as AppProjectIdModelsRouteImport } from './routes/app.$projectId.models'
 import { Route as AppProjectIdMentionsRouteImport } from './routes/app.$projectId.mentions'
 import { Route as AppProjectIdInsightsRouteImport } from './routes/app.$projectId.insights'
+import { Route as AppProjectIdContentRouteImport } from './routes/app.$projectId.content'
 import { Route as AppProjectIdCompetitorsRouteImport } from './routes/app.$projectId.competitors'
 import { Route as AppProjectIdCitationsRouteImport } from './routes/app.$projectId.citations'
 import { Route as AppProjectIdAnalyticsRouteImport } from './routes/app.$projectId.analytics'
 import { Route as ApiLlmsTxtProjectIdRouteImport } from './routes/api.llms-txt.$projectId'
 import { Route as AppProjectIdToolsResearchRouteImport } from './routes/app.$projectId.tools.research'
 import { Route as AppProjectIdToolsAnnotationsRouteImport } from './routes/app.$projectId.tools.annotations'
-import { Route as AppProjectIdReportsShoppingRouteImport } from './routes/app.$projectId.reports.shopping'
 import { Route as AppProjectIdReportsSentimentRouteImport } from './routes/app.$projectId.reports.sentiment'
 import { Route as AppProjectIdReportsReputationRouteImport } from './routes/app.$projectId.reports.reputation'
 import { Route as AppProjectIdReportsMediaRouteImport } from './routes/app.$projectId.reports.media'
@@ -183,6 +183,11 @@ const AppProjectIdInsightsRoute = AppProjectIdInsightsRouteImport.update({
   path: '/$projectId/insights',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProjectIdContentRoute = AppProjectIdContentRouteImport.update({
+  id: '/$projectId/content',
+  path: '/$projectId/content',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProjectIdCompetitorsRoute = AppProjectIdCompetitorsRouteImport.update({
   id: '/$projectId/competitors',
   path: '/$projectId/competitors',
@@ -214,12 +219,6 @@ const AppProjectIdToolsAnnotationsRoute =
     id: '/$projectId/tools/annotations',
     path: '/$projectId/tools/annotations',
     getParentRoute: () => AppRoute,
-  } as any)
-const AppProjectIdReportsShoppingRoute =
-  AppProjectIdReportsShoppingRouteImport.update({
-    id: '/shopping',
-    path: '/shopping',
-    getParentRoute: () => AppProjectIdReportsRoute,
   } as any)
 const AppProjectIdReportsSentimentRoute =
   AppProjectIdReportsSentimentRouteImport.update({
@@ -269,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/app/$projectId/analytics': typeof AppProjectIdAnalyticsRoute
   '/app/$projectId/citations': typeof AppProjectIdCitationsRoute
   '/app/$projectId/competitors': typeof AppProjectIdCompetitorsRoute
+  '/app/$projectId/content': typeof AppProjectIdContentRoute
   '/app/$projectId/insights': typeof AppProjectIdInsightsRoute
   '/app/$projectId/mentions': typeof AppProjectIdMentionsRoute
   '/app/$projectId/models': typeof AppProjectIdModelsRoute
@@ -282,7 +282,6 @@ export interface FileRoutesByFullPath {
   '/app/$projectId/reports/media': typeof AppProjectIdReportsMediaRoute
   '/app/$projectId/reports/reputation': typeof AppProjectIdReportsReputationRoute
   '/app/$projectId/reports/sentiment': typeof AppProjectIdReportsSentimentRoute
-  '/app/$projectId/reports/shopping': typeof AppProjectIdReportsShoppingRoute
   '/app/$projectId/tools/annotations': typeof AppProjectIdToolsAnnotationsRoute
   '/app/$projectId/tools/research': typeof AppProjectIdToolsResearchRoute
 }
@@ -308,6 +307,7 @@ export interface FileRoutesByTo {
   '/app/$projectId/analytics': typeof AppProjectIdAnalyticsRoute
   '/app/$projectId/citations': typeof AppProjectIdCitationsRoute
   '/app/$projectId/competitors': typeof AppProjectIdCompetitorsRoute
+  '/app/$projectId/content': typeof AppProjectIdContentRoute
   '/app/$projectId/insights': typeof AppProjectIdInsightsRoute
   '/app/$projectId/mentions': typeof AppProjectIdMentionsRoute
   '/app/$projectId/models': typeof AppProjectIdModelsRoute
@@ -321,7 +321,6 @@ export interface FileRoutesByTo {
   '/app/$projectId/reports/media': typeof AppProjectIdReportsMediaRoute
   '/app/$projectId/reports/reputation': typeof AppProjectIdReportsReputationRoute
   '/app/$projectId/reports/sentiment': typeof AppProjectIdReportsSentimentRoute
-  '/app/$projectId/reports/shopping': typeof AppProjectIdReportsShoppingRoute
   '/app/$projectId/tools/annotations': typeof AppProjectIdToolsAnnotationsRoute
   '/app/$projectId/tools/research': typeof AppProjectIdToolsResearchRoute
 }
@@ -349,6 +348,7 @@ export interface FileRoutesById {
   '/app/$projectId/analytics': typeof AppProjectIdAnalyticsRoute
   '/app/$projectId/citations': typeof AppProjectIdCitationsRoute
   '/app/$projectId/competitors': typeof AppProjectIdCompetitorsRoute
+  '/app/$projectId/content': typeof AppProjectIdContentRoute
   '/app/$projectId/insights': typeof AppProjectIdInsightsRoute
   '/app/$projectId/mentions': typeof AppProjectIdMentionsRoute
   '/app/$projectId/models': typeof AppProjectIdModelsRoute
@@ -362,7 +362,6 @@ export interface FileRoutesById {
   '/app/$projectId/reports/media': typeof AppProjectIdReportsMediaRoute
   '/app/$projectId/reports/reputation': typeof AppProjectIdReportsReputationRoute
   '/app/$projectId/reports/sentiment': typeof AppProjectIdReportsSentimentRoute
-  '/app/$projectId/reports/shopping': typeof AppProjectIdReportsShoppingRoute
   '/app/$projectId/tools/annotations': typeof AppProjectIdToolsAnnotationsRoute
   '/app/$projectId/tools/research': typeof AppProjectIdToolsResearchRoute
 }
@@ -391,6 +390,7 @@ export interface FileRouteTypes {
     | '/app/$projectId/analytics'
     | '/app/$projectId/citations'
     | '/app/$projectId/competitors'
+    | '/app/$projectId/content'
     | '/app/$projectId/insights'
     | '/app/$projectId/mentions'
     | '/app/$projectId/models'
@@ -404,7 +404,6 @@ export interface FileRouteTypes {
     | '/app/$projectId/reports/media'
     | '/app/$projectId/reports/reputation'
     | '/app/$projectId/reports/sentiment'
-    | '/app/$projectId/reports/shopping'
     | '/app/$projectId/tools/annotations'
     | '/app/$projectId/tools/research'
   fileRoutesByTo: FileRoutesByTo
@@ -430,6 +429,7 @@ export interface FileRouteTypes {
     | '/app/$projectId/analytics'
     | '/app/$projectId/citations'
     | '/app/$projectId/competitors'
+    | '/app/$projectId/content'
     | '/app/$projectId/insights'
     | '/app/$projectId/mentions'
     | '/app/$projectId/models'
@@ -443,7 +443,6 @@ export interface FileRouteTypes {
     | '/app/$projectId/reports/media'
     | '/app/$projectId/reports/reputation'
     | '/app/$projectId/reports/sentiment'
-    | '/app/$projectId/reports/shopping'
     | '/app/$projectId/tools/annotations'
     | '/app/$projectId/tools/research'
   id:
@@ -470,6 +469,7 @@ export interface FileRouteTypes {
     | '/app/$projectId/analytics'
     | '/app/$projectId/citations'
     | '/app/$projectId/competitors'
+    | '/app/$projectId/content'
     | '/app/$projectId/insights'
     | '/app/$projectId/mentions'
     | '/app/$projectId/models'
@@ -483,7 +483,6 @@ export interface FileRouteTypes {
     | '/app/$projectId/reports/media'
     | '/app/$projectId/reports/reputation'
     | '/app/$projectId/reports/sentiment'
-    | '/app/$projectId/reports/shopping'
     | '/app/$projectId/tools/annotations'
     | '/app/$projectId/tools/research'
   fileRoutesById: FileRoutesById
@@ -692,6 +691,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProjectIdInsightsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/$projectId/content': {
+      id: '/app/$projectId/content'
+      path: '/$projectId/content'
+      fullPath: '/app/$projectId/content'
+      preLoaderRoute: typeof AppProjectIdContentRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/$projectId/competitors': {
       id: '/app/$projectId/competitors'
       path: '/$projectId/competitors'
@@ -734,13 +740,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProjectIdToolsAnnotationsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/$projectId/reports/shopping': {
-      id: '/app/$projectId/reports/shopping'
-      path: '/shopping'
-      fullPath: '/app/$projectId/reports/shopping'
-      preLoaderRoute: typeof AppProjectIdReportsShoppingRouteImport
-      parentRoute: typeof AppProjectIdReportsRoute
-    }
     '/app/$projectId/reports/sentiment': {
       id: '/app/$projectId/reports/sentiment'
       path: '/sentiment'
@@ -777,7 +776,6 @@ interface AppProjectIdReportsRouteChildren {
   AppProjectIdReportsMediaRoute: typeof AppProjectIdReportsMediaRoute
   AppProjectIdReportsReputationRoute: typeof AppProjectIdReportsReputationRoute
   AppProjectIdReportsSentimentRoute: typeof AppProjectIdReportsSentimentRoute
-  AppProjectIdReportsShoppingRoute: typeof AppProjectIdReportsShoppingRoute
 }
 
 const AppProjectIdReportsRouteChildren: AppProjectIdReportsRouteChildren = {
@@ -785,7 +783,6 @@ const AppProjectIdReportsRouteChildren: AppProjectIdReportsRouteChildren = {
   AppProjectIdReportsMediaRoute: AppProjectIdReportsMediaRoute,
   AppProjectIdReportsReputationRoute: AppProjectIdReportsReputationRoute,
   AppProjectIdReportsSentimentRoute: AppProjectIdReportsSentimentRoute,
-  AppProjectIdReportsShoppingRoute: AppProjectIdReportsShoppingRoute,
 }
 
 const AppProjectIdReportsRouteWithChildren =
@@ -804,6 +801,7 @@ interface AppRouteChildren {
   AppProjectIdAnalyticsRoute: typeof AppProjectIdAnalyticsRoute
   AppProjectIdCitationsRoute: typeof AppProjectIdCitationsRoute
   AppProjectIdCompetitorsRoute: typeof AppProjectIdCompetitorsRoute
+  AppProjectIdContentRoute: typeof AppProjectIdContentRoute
   AppProjectIdInsightsRoute: typeof AppProjectIdInsightsRoute
   AppProjectIdMentionsRoute: typeof AppProjectIdMentionsRoute
   AppProjectIdModelsRoute: typeof AppProjectIdModelsRoute
@@ -830,6 +828,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProjectIdAnalyticsRoute: AppProjectIdAnalyticsRoute,
   AppProjectIdCitationsRoute: AppProjectIdCitationsRoute,
   AppProjectIdCompetitorsRoute: AppProjectIdCompetitorsRoute,
+  AppProjectIdContentRoute: AppProjectIdContentRoute,
   AppProjectIdInsightsRoute: AppProjectIdInsightsRoute,
   AppProjectIdMentionsRoute: AppProjectIdMentionsRoute,
   AppProjectIdModelsRoute: AppProjectIdModelsRoute,

@@ -41,7 +41,8 @@ const reportsNav = [
 
 const toolsNav = [
   { title: "Prompt Research", url: "/app/$projectId/tools/research", icon: Search, isStub: true },
-  { title: "Annotations",     url: "/app/$projectId/tools/annotations", icon: FileText, isStub: true },
+  { title: "Annotations",     url: "/app/$projectId/tools/annotations", icon: FileText },
+  { title: "Content Optimizer",url: "/app/$projectId/content", icon: FileText },
   { title: "SEO Audit",       url: "/app/$projectId/seo-audit", icon: ShieldCheck },
 ];
 
