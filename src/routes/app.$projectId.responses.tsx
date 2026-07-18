@@ -2,7 +2,7 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Loader2, Search, ChevronDown, Download, Columns3, Filter,
-  Globe, Tag, ExternalLink, TrendingUp, TrendingDown,
+  Globe, Tag, ExternalLink, TrendingUp, TrendingDown, AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -44,6 +44,7 @@ function Responses() {
   const [search, setSearch] = useState("");
   const [modelFilter, setModelFilter] = useState("all");
   const [mentionFilter, setMentionFilter] = useState<"all" | "mentioned" | "not">("all");
+  const [hallucinationFilter, setHallucinationFilter] = useState<boolean>(false);
   const [selected, setSelected] = useState<any | null>(null);
 
   useEffect(() => { fetchRuns(); }, [projectId]);
@@ -56,7 +57,7 @@ function Responses() {
         .from("prompt_runs")
         .select(`
           id, model, is_mentioned, rank, response_text,
-          created_at, sentiment, citations,
+          created_at, sentiment, citations, hallucination_detected, hallucination_details,
           prompts!inner(id, text, project_id)
         `)
         .eq("prompts.project_id", projectId)
@@ -79,7 +80,8 @@ function Responses() {
     const matchMention = mentionFilter === "all"
       || (mentionFilter === "mentioned" && r.is_mentioned)
       || (mentionFilter === "not" && !r.is_mentioned);
-    return matchSearch && matchModel && matchMention;
+    const matchHallucination = !hallucinationFilter || r.hallucination_detected;
+    return matchSearch && matchModel && matchMention && matchHallucination;
   });
 
   const mentionedCount = runs.filter(r => r.is_mentioned).length;
@@ -165,6 +167,19 @@ function Responses() {
           ))}
         </div>
 
+        {/* Hallucination toggle */}
+        <button
+          onClick={() => setHallucinationFilter(!hallucinationFilter)}
+          className={`h-8 px-3 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 border ${
+            hallucinationFilter
+              ? "bg-amber-500/10 border-amber-500/30 text-amber-400 font-semibold animate-pulse"
+              : "border-white/10 bg-white/[0.04] text-white/50 hover:text-white/80"
+          }`}
+        >
+          <AlertTriangle className="w-3.5 h-3.5" />
+          Hallucinations Only
+        </button>
+
         <FilterPill label="Last 30 days" />
         <FilterPill label="United States" icon={Globe} />
         <FilterPill label="Tags" icon={Tag} />
@@ -215,13 +230,20 @@ function Responses() {
                     <ModelBadge model={run.model} />
                   </td>
                   <td className="py-3 px-3">
-                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
-                      run.is_mentioned
-                        ? "bg-emerald-500/15 text-emerald-400"
-                        : "bg-red-500/15 text-red-400"
-                    }`}>
-                      {run.is_mentioned ? "Success" : "Not Found"}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                        run.is_mentioned
+                          ? "bg-emerald-500/15 text-emerald-400"
+                          : "bg-red-500/15 text-red-400"
+                      }`}>
+                        {run.is_mentioned ? "Success" : "Not Found"}
+                      </span>
+                      {run.hallucination_detected && (
+                        <span className="rounded-full bg-amber-500/15 text-amber-400 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider flex items-center gap-0.5 shrink-0">
+                          <AlertTriangle className="w-2.5 h-2.5" /> Hallucination
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 px-3">
                     <span className={`text-[11px] font-semibold ${
@@ -280,6 +302,17 @@ function Responses() {
             </div>
 
             <div className="p-5 space-y-5">
+              {selected.hallucination_detected && (
+                <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold">
+                    <AlertTriangle className="w-4 h-4 shrink-0" /> Factual Hallucination Flagged
+                  </div>
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    {selected.hallucination_details?.excerpt || "AI response confidence score was below threshold, suggesting potential incorrect or hallucinated claims about the brand."}
+                  </p>
+                </div>
+              )}
+
               {selected.rank && (
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">Brand Position</span>
