@@ -22,7 +22,6 @@ import { Route as AppIntegrationsRouteImport } from './routes/app.integrations'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppAlertsRouteImport } from './routes/app.alerts'
-import { Route as AppAgentRouteImport } from './routes/app.agent'
 import { Route as ApiSeoAuditRouteImport } from './routes/api.seo-audit'
 import { Route as ApiRunScheduledPromptsRouteImport } from './routes/api.run-scheduled-prompts'
 import { Route as ApiPromptAuditRouteImport } from './routes/api.prompt-audit'
@@ -112,11 +111,6 @@ const AppBillingRoute = AppBillingRouteImport.update({
 const AppAlertsRoute = AppAlertsRouteImport.update({
   id: '/alerts',
   path: '/alerts',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAgentRoute = AppAgentRouteImport.update({
-  id: '/agent',
-  path: '/agent',
   getParentRoute: () => AppRoute,
 } as any)
 const ApiSeoAuditRoute = ApiSeoAuditRouteImport.update({
@@ -262,7 +256,6 @@ export interface FileRoutesByFullPath {
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
-  '/app/agent': typeof AppAgentRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/billing': typeof AppBillingRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -302,7 +295,6 @@ export interface FileRoutesByTo {
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
-  '/app/agent': typeof AppAgentRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/billing': typeof AppBillingRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -344,7 +336,6 @@ export interface FileRoutesById {
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
-  '/app/agent': typeof AppAgentRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/billing': typeof AppBillingRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -387,7 +378,6 @@ export interface FileRouteTypes {
     | '/api/prompt-audit'
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
-    | '/app/agent'
     | '/app/alerts'
     | '/app/billing'
     | '/app/dashboard'
@@ -427,7 +417,6 @@ export interface FileRouteTypes {
     | '/api/prompt-audit'
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
-    | '/app/agent'
     | '/app/alerts'
     | '/app/billing'
     | '/app/dashboard'
@@ -468,7 +457,6 @@ export interface FileRouteTypes {
     | '/api/prompt-audit'
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
-    | '/app/agent'
     | '/app/alerts'
     | '/app/billing'
     | '/app/dashboard'
@@ -604,13 +592,6 @@ declare module '@tanstack/react-router' {
       path: '/alerts'
       fullPath: '/app/alerts'
       preLoaderRoute: typeof AppAlertsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/agent': {
-      id: '/app/agent'
-      path: '/agent'
-      fullPath: '/app/agent'
-      preLoaderRoute: typeof AppAgentRouteImport
       parentRoute: typeof AppRoute
     }
     '/api/seo-audit': {
@@ -811,7 +792,6 @@ const AppProjectIdReportsRouteWithChildren =
   AppProjectIdReportsRoute._addFileChildren(AppProjectIdReportsRouteChildren)
 
 interface AppRouteChildren {
-  AppAgentRoute: typeof AppAgentRoute
   AppAlertsRoute: typeof AppAlertsRoute
   AppBillingRoute: typeof AppBillingRoute
   AppDashboardRoute: typeof AppDashboardRoute
@@ -838,7 +818,6 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppAgentRoute: AppAgentRoute,
   AppAlertsRoute: AppAlertsRoute,
   AppBillingRoute: AppBillingRoute,
   AppDashboardRoute: AppDashboardRoute,

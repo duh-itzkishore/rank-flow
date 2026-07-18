@@ -20,7 +20,6 @@ export const Route = createFileRoute("/app")({
 const topNav = [
   { title: "Dashboard",   url: "/app/dashboard",     icon: LayoutDashboard },
   { title: "Search",      url: "/app/search",        icon: Search, isStub: true },
-  { title: "Agent",       url: "/app/agent",         icon: Sparkles, isStub: true, badge: "New" },
 ];
 
 const projectNav = [
@@ -38,8 +37,6 @@ const reportsNav = [
   { title: "Agent Analytics",    url: "/app/$projectId/insights",    icon: Sparkles },
   { title: "Reputation",         url: "/app/$projectId/reports/reputation", icon: ShieldCheck, isStub: true },
   { title: "Owned Media",        url: "/app/$projectId/reports/media", icon: FileText, isStub: true },
-  { title: "Reddit Intelligence",url: "/app/$projectId/mentions",    icon: MessageSquare },
-  { title: "ChatGPT Shopping",   url: "/app/$projectId/reports/shopping", icon: CreditCard, isStub: true },
 ];
 
 const toolsNav = [
@@ -277,11 +274,6 @@ function AppLayout() {
               >
                 <item.icon className="w-4 h-4" />
                 {!collapsed && <span>{item.title}</span>}
-                {!collapsed && item.badge && (
-                  <span className="ml-auto rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 uppercase">
-                    {item.badge}
-                  </span>
-                )}
               </Link>
             ))}
           </div>
