@@ -166,6 +166,50 @@ function AppLayout() {
                   status: "active",
                 });
               orgsList = [{ ...newOrg, org_members: [{ role: "owner" }] }];
+
+              // Auto-create a default project and prompt
+              try {
+                const searchParams = new URLSearchParams(window.location.search);
+                const urlParam = searchParams.get("website") || searchParams.get("q") || "";
+                let domain = "";
+                let brandName = "My Brand";
+                if (urlParam) {
+                  try {
+                    const parsedUrl = new URL(urlParam.includes("://") ? urlParam : `https://${urlParam}`);
+                    domain = parsedUrl.hostname;
+                    brandName = domain.replace("www.", "").split(".")[0];
+                    brandName = brandName.charAt(0).toUpperCase() + brandName.slice(1);
+                  } catch (e) {
+                    domain = urlParam;
+                    brandName = urlParam;
+                  }
+                }
+
+                const { data: newProj } = await (supabase as any)
+                  .from("projects")
+                  .insert({
+                    name: domain ? `${brandName} Monitor` : "My Brand Monitor",
+                    brand: brandName,
+                    website: domain ? `https://${domain}` : "https://example.com",
+                    user_id: data.user.id,
+                    org_id: newOrg.id
+                  })
+                  .select()
+                  .single();
+
+                if (newProj) {
+                  await supabase
+                    .from("prompts")
+                    .insert({
+                      project_id: newProj.id,
+                      text: `What is ${brandName} known for?`,
+                      user_id: data.user.id,
+                      status: "active"
+                    });
+                }
+              } catch (projErr) {
+                console.error("Failed to auto-create default project/prompt", projErr);
+              }
             }
           } catch (createErr) {
             console.error("Failed to auto-create organization", createErr);
