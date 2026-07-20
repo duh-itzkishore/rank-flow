@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import * as cheerio from "cheerio";
+import { launchBrowser } from "../lib/browser-launcher";
 
 export const Route = createFileRoute("/api/seo-audit")({
   server: {
@@ -71,10 +73,11 @@ export const Route = createFileRoute("/api/seo-audit")({
           }
         } catch (e) {}
 
-        let browser;
+        let browser: any = null;
+        let metrics: any = null;
+
         try {
-          const { chromium } = await import("playwright");
-          browser = await chromium.launch({ 
+          browser = await launchBrowser({ 
             headless: true,
             args: [
               "--disable-blink-features=AutomationControlled",
@@ -111,7 +114,7 @@ export const Route = createFileRoute("/api/seo-audit")({
 
           await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 25000 });
 
-          const metrics = await page.evaluate(() => {
+          metrics = await page.evaluate(() => {
             const metaDesc = document.querySelector('meta[name="description"]')?.getAttribute("content") || "";
             const metaTitle = document.querySelector('meta[property="og:title"]')?.getAttribute("content") || document.title;
             const h1s = Array.from(document.querySelectorAll("h1")).map((h) => (h as HTMLElement).innerText.trim()).filter(Boolean);
@@ -130,7 +133,47 @@ export const Route = createFileRoute("/api/seo-audit")({
               totalLinks: links.length, robotsMeta, schemas: schemaScripts, humanText 
             };
           });
+        } catch (err) {
+          console.warn("[SEO Audit API] Headless browser execution warning, falling back to HTTP Cheerio parser:", err);
+        } finally {
+          if (browser) {
+            await browser.close().catch(() => {});
+          }
+        }
 
+        // Fallback to Cheerio HTML extraction if browser evaluation failed or couldn't run
+        if (!metrics) {
+          const $ = cheerio.load(rawHtml || "");
+          const title = $("title").text().trim() || "";
+          const metaDesc = $('meta[name="description"]').attr("content") || "";
+          const metaTitle = $('meta[property="og:title"]').attr("content") || title;
+          const h1s = $("h1").map((_, el) => $(el).text().trim()).get().filter(Boolean);
+          const canonical = $('link[rel="canonical"]').attr("href") || null;
+          const links = $("a[href]").map((_, el) => $(el).attr("href")).get().filter((h): h is string => Boolean(h && h.startsWith("http")));
+          const robotsMeta = $('meta[name="robots"]').attr("content") || null;
+
+          const schemaScripts: any[] = [];
+          $('script[type="application/ld+json"]').each((_, el) => {
+            try {
+              const parsed = JSON.parse($(el).html() || "");
+              if (parsed) schemaScripts.push(parsed);
+            } catch {}
+          });
+
+          metrics = {
+            title,
+            description: metaDesc,
+            metaTitle,
+            h1s,
+            canonical,
+            totalLinks: links.length,
+            robotsMeta,
+            schemas: schemaScripts,
+            humanText: agentText
+          };
+        }
+
+        try {
           const humanWordsCount = metrics.humanText ? metrics.humanText.split(/\s+/).filter((w: string) => w.length > 0).length : 0;
           
           // Calculate AI Readability Score
@@ -178,7 +221,7 @@ export const Route = createFileRoute("/api/seo-audit")({
                 humanWords: humanWordsCount,
                 visibilityScore: aiVisibilityScore,
                 agentTextSnippet: agentText.substring(0, 500) + "...",
-                humanTextSnippet: metrics.humanText.substring(0, 500) + "...",
+                humanTextSnippet: (metrics.humanText || "").substring(0, 500) + "...",
                 robotsTxt,
                 llmsTxtStatus,
                 pageSizeKb: (pageSize / 1024).toFixed(1),
@@ -195,8 +238,6 @@ export const Route = createFileRoute("/api/seo-audit")({
             status: 500,
             headers: { "Content-Type": "application/json" },
           });
-        } finally {
-          if (browser) await browser.close();
         }
       },
     },

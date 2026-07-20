@@ -1,31 +1,18 @@
 import { FetcherResult } from '../types';
-import { chromium as playwrightChromium } from 'playwright';
-import sparticuzChromium from '@sparticuz/chromium';
+import { launchBrowser } from '../../lib/browser-launcher';
 
 export async function fetchWithPlaywright(url: string): Promise<FetcherResult> {
   const start = performance.now();
-  let browser = null;
+  let browser: any = null;
 
   try {
-    // If we're on a Vercel-like edge/serverless environment
-    const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_VERSION;
-    
-    let executablePath = undefined;
-    let args = [
-      '--disable-blink-features=AutomationControlled',
-      '--no-sandbox',
-      '--disable-setuid-sandbox'
-    ];
-
-    if (isServerless) {
-      executablePath = await sparticuzChromium.executablePath();
-      args = sparticuzChromium.args;
-    }
-
-    browser = await playwrightChromium.launch({
+    browser = await launchBrowser({
       headless: true,
-      executablePath,
-      args
+      args: [
+        '--disable-blink-features=AutomationControlled',
+        '--no-sandbox',
+        '--disable-setuid-sandbox'
+      ]
     });
 
     const context = await browser.newContext({
@@ -68,7 +55,7 @@ export async function fetchWithPlaywright(url: string): Promise<FetcherResult> {
     };
   } finally {
     if (browser) {
-      await browser.close();
+      await browser.close().catch(() => {});
     }
   }
 }

@@ -6,15 +6,15 @@ export default defineConfig({
   },
   vite: {
     optimizeDeps: {
-      exclude: ["playwright"],
+      exclude: ["playwright", "playwright-core", "@sparticuz/chromium"],
     },
     build: {
       rollupOptions: {
-        external: ["playwright"],
+        external: ["playwright", "playwright-core", "@sparticuz/chromium"],
       },
     },
     ssr: {
-      external: ["playwright"],
+      external: ["playwright", "playwright-core", "@sparticuz/chromium"],
       noExternal: [],
     },
   },

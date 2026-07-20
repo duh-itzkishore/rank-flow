@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { launchBrowser } from "../lib/browser-launcher";
 
 const AI_BOT_AGENTS = [
   "gptbot", "claudebot", "perplexitybot", "google-extended",
@@ -575,8 +576,7 @@ async function crawlSite(startUrl: string, maxPages: number) {
   let browser: any = null;
   let context: any = null;
   try {
-    const { chromium } = await import("playwright");
-    browser = await chromium.launch({
+    browser = await launchBrowser({
       headless: true,
       args: [
         "--disable-blink-features=AutomationControlled",
@@ -590,7 +590,7 @@ async function crawlSite(startUrl: string, maxPages: number) {
       deviceScaleFactor: 1,
     });
   } catch (err) {
-    console.warn("[AEO] Playwright not available, falling back to standard HTTP fetch:", err);
+    console.warn("[AEO] Chromium launch not available, falling back to standard HTTP fetch:", err);
   }
 
   async function fetchPageHtml(url: string): Promise<string> {
