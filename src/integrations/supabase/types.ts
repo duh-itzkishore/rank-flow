@@ -74,6 +74,50 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_jobs: {
+        Row: {
+          id: string
+          prompt_id: string
+          status: string
+          model: string
+          retry_count: number
+          error: string | null
+          created_at: string
+          started_at: string | null
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          prompt_id: string
+          status?: string
+          model: string
+          retry_count?: number
+          error?: string | null
+          created_at?: string
+          started_at?: string | null
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          prompt_id?: string
+          status?: string
+          model?: string
+          retry_count?: number
+          error?: string | null
+          created_at?: string
+          started_at?: string | null
+          completed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_jobs_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       prompt_runs: {
         Row: {
           id: string

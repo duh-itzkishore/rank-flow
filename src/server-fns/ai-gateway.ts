@@ -195,6 +195,8 @@ function parseGatewayResponse(
   }
 }
 
+import { dispatchProviderQuery, ProviderRequest } from "./providers";
+
 // General query model function
 export async function queryAIModel(
   model: string,
@@ -204,9 +206,6 @@ export async function queryAIModel(
   competitorNames: string[] = []
 ): Promise<ModelResponse & { rawResponse?: any }> {
   const startTime = Date.now();
-  let responseText = "";
-  let tokensUsed = 0;
-
   const actualKey = apiKey || getEnvKey(model);
 
   if (!actualKey) {
@@ -216,154 +215,24 @@ export async function queryAIModel(
   const systemPrompt = buildSystemPrompt(brandName, competitorNames);
 
   try {
-    // ── OpenAI (ChatGPT) ─────────────────────────────────────
-    if (model === "chatgpt") {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${actualKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: promptText },
-          ],
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || `OpenAI error ${res.status}`);
-      responseText = data.choices?.[0]?.message?.content || "";
-      tokensUsed = data.usage?.total_tokens || 0;
+    const req: ProviderRequest = {
+      model,
+      promptText,
+      brandName,
+      apiKey: actualKey,
+      competitorNames,
+      systemPrompt,
+    };
 
-    // ── Anthropic (Claude) ───────────────────────────────────
-    } else if (model === "claude") {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": actualKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-3-haiku-20240307",
-          max_tokens: 1536,
-          system: systemPrompt,
-          messages: [{ role: "user", content: promptText }],
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || `Anthropic error ${res.status}`);
-      responseText = data.content?.[0]?.text || "";
-      tokensUsed = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
-
-    // ── Google Gemini (FREE tier available) ──────────────────
-    } else if (model === "gemini") {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${actualKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ parts: [{ text: promptText }] }],
-            generationConfig: { 
-              maxOutputTokens: 1536, 
-              temperature: 0.7,
-              responseMimeType: "application/json"
-            },
-          }),
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || `Gemini error ${res.status}`);
-      responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      tokensUsed = data.usageMetadata?.totalTokenCount || 0;
-
-    // ── Perplexity AI ────────────────────────────────────────
-    } else if (model === "perplexity") {
-      const res = await fetch("https://api.perplexity.ai/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${actualKey}`,
-        },
-        body: JSON.stringify({
-          model: "llama-3.1-sonar-small-128k-online",
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: promptText },
-          ],
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || `Perplexity error ${res.status}`);
-      responseText = data.choices?.[0]?.message?.content || "";
-      tokensUsed = data.usage?.total_tokens || 0;
-
-    // ── Groq (FREE — Llama 3.3 70B) ─────────────────────────
-    } else if (model === "groq") {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${actualKey}`,
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: promptText },
-          ],
-          max_tokens: 1536,
-          temperature: 0.7,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || `Groq error ${res.status}`);
-      responseText = data.choices?.[0]?.message?.content || "";
-      tokensUsed = data.usage?.total_tokens || 0;
-
-    // ── OpenRouter (FREE models: Llama, Gemma, Mistral) ──────
-    } else if (model === "openrouter") {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${actualKey}`,
-          "HTTP-Referer": "https://rankflow.app",
-          "X-Title": "RankFlow AI Brand Monitor",
-        },
-        body: JSON.stringify({
-          model: "meta-llama/llama-3.2-3b-instruct:free",
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: promptText },
-          ],
-          max_tokens: 1536,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || `OpenRouter error ${res.status}`);
-      responseText = data.choices?.[0]?.message?.content || "";
-      tokensUsed = data.usage?.total_tokens || 0;
-    }
-
-    const latencyMs = Date.now() - startTime;
-    const parsed = parseGatewayResponse(responseText, brandName, competitorNames);
+    const providerResult = await dispatchProviderQuery(model, req, parseGatewayResponse);
 
     return {
       model,
-      responseText: parsed.responseText,
-      isMentioned: parsed.isMentioned,
-      rank: parsed.rank,
-      citations: parsed.citations,
-      recommendations: parsed.isMentioned
+      responseText: providerResult.responseText,
+      isMentioned: providerResult.isMentioned,
+      rank: providerResult.rank,
+      citations: providerResult.citations,
+      recommendations: providerResult.isMentioned
         ? []
         : [
             {
@@ -372,18 +241,18 @@ export async function queryAIModel(
               action: `Optimize your page content around terms matching this prompt to improve ${model} visibility.`,
             },
           ],
-      sentimentScore: parsed.sentimentScore,
-      confidenceScore: parsed.confidenceScore,
-      tokensUsed,
-      latencyMs,
-      rawResponse: {
-        responseText: parsed.responseText,
-        brandMentioned: parsed.isMentioned,
-        brandRank: parsed.rank,
-        brandSentiment: parsed.sentimentScore,
-        competitors: parsed.competitorsData,
-        citations: parsed.citations,
-        confidenceScore: parsed.confidenceScore
+      sentimentScore: providerResult.sentimentScore,
+      confidenceScore: providerResult.confidenceScore,
+      tokensUsed: providerResult.tokensUsed,
+      latencyMs: providerResult.latencyMs,
+      rawResponse: providerResult.rawResponse || {
+        responseText: providerResult.responseText,
+        brandMentioned: providerResult.isMentioned,
+        brandRank: providerResult.rank,
+        brandSentiment: providerResult.sentimentScore,
+        competitors: providerResult.competitorsData,
+        citations: providerResult.citations,
+        confidenceScore: providerResult.confidenceScore
       }
     };
   } catch (err) {
