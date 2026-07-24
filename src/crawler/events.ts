@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import { PageData, CrawlContext } from './types';
 
 // Create a custom event emitter for the crawler
-class CrawlEventEmitter extends EventEmitter {}
+export class CrawlEventEmitter extends EventEmitter {}
 
 export const crawlEmitter = new CrawlEventEmitter();
 

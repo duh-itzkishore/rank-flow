@@ -335,6 +335,71 @@ async function getSimulatedFallback(
   competitorNames: string[] = []
 ): Promise<ModelResponse & { rawResponse?: any }> {
   const brand = brandName || "Your Brand";
+
+  // Check if it's a Fix-it generation prompt
+  if (promptText.includes("Generate a standard markdown llms.txt")) {
+    return {
+      model,
+      responseText: `# ${brand}\n\n> A next-generation AI brand monitoring and visibility platform.\n\n## Core Capabilities\n- Real-time AI citation tracking\n- Share of Voice analytics\n- GEO optimization recommendations\n\n## Links\n- [Documentation](https://example.com/docs)\n- [API Reference](https://example.com/api)`,
+      isMentioned: true,
+      rank: 1,
+      citations: [],
+      recommendations: [],
+      sentimentScore: 0.9,
+      confidenceScore: 1.0,
+      tokensUsed: 100,
+      latencyMs: 50,
+      rawResponse: {}
+    };
+  }
+
+  if (promptText.includes("Generate a valid JSON-LD schema")) {
+    return {
+      model,
+      responseText: `<script type="application/ld+json">\n{\n  "@context": "https://schema.org",\n  "@type": "Organization",\n  "name": "${brand}",\n  "url": "https://example.com",\n  "logo": "https://example.com/logo.png"\n}\n</script>`,
+      isMentioned: true,
+      rank: 1,
+      citations: [],
+      recommendations: [],
+      sentimentScore: 0.9,
+      confidenceScore: 1.0,
+      tokensUsed: 100,
+      latencyMs: 50,
+      rawResponse: {}
+    };
+  }
+
+  if (promptText.includes("Generate 3 high-converting, GEO-optimized meta description")) {
+    return {
+      model,
+      responseText: `1. Discover how ${brand} helps you monitor and optimize brand visibility across ChatGPT, Gemini, and Perplexity in real-time.\n2. Boost your AI search visibility. Track references, monitor citations, and optimize content for GEO with ${brand}.\n3. Rank higher in AI answers. Use ${brand} to reverse-engineer LLM sources and outrank competitors today.`,
+      isMentioned: true,
+      rank: 1,
+      citations: [],
+      recommendations: [],
+      sentimentScore: 0.9,
+      confidenceScore: 1.0,
+      tokensUsed: 100,
+      latencyMs: 50,
+      rawResponse: {}
+    };
+  }
+
+  if (promptText.includes("Generate 3 strong, keyword-rich H1")) {
+    return {
+      model,
+      responseText: `Pair 1:\n- Title: AI Brand Visibility & Search Monitoring Tool | ${brand}\n- H1: Monitor Your Brand's Share of Voice in AI Search\n\nPair 2:\n- Title: GEO & AEO Search Optimization Platform | ${brand}\n- H1: Optimize Your Website for ChatGPT, Gemini, and Claude\n\nPair 3:\n- Title: AI Citation Tracker & Analytics | ${brand}\n- H1: Track and Improve Brand Citations across LLM Search Engines`,
+      isMentioned: true,
+      rank: 1,
+      citations: [],
+      recommendations: [],
+      sentimentScore: 0.9,
+      confidenceScore: 1.0,
+      tokensUsed: 100,
+      latencyMs: 50,
+      rawResponse: {}
+    };
+  }
   
   // Clean query: strip out "in chatgpt", etc.
   const cleanPrompt = promptText

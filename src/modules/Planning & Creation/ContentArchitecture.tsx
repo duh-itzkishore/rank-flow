@@ -27,7 +27,7 @@ export function ContentArchitecture({ projectId }: ContentArchitectureProps) {
   const fetchSuggestions = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("content_suggestions")
         .select("*")
         .eq("project_id", projectId)
@@ -52,7 +52,7 @@ export function ContentArchitecture({ projectId }: ContentArchitectureProps) {
 
     setAdding(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("content_suggestions")
         .insert({
           project_id: projectId,
@@ -79,7 +79,7 @@ export function ContentArchitecture({ projectId }: ContentArchitectureProps) {
 
   const handleToggleImplement = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("content_suggestions")
         .update({ is_implemented: !currentStatus })
         .eq("id", id);
@@ -96,7 +96,7 @@ export function ContentArchitecture({ projectId }: ContentArchitectureProps) {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = supabase ? await supabase.from("content_suggestions").delete().eq("id", id) : { error: new Error() };
+      const { error } = supabase ? await (supabase as any).from("content_suggestions").delete().eq("id", id) : { error: new Error() };
       if (error) throw error;
       setSuggestions(suggestions.filter(s => s.id !== id));
       toast.success("Page plan deleted");

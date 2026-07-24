@@ -938,7 +938,7 @@ export const runAeoAudit = createServerFn({ method: "POST" })
           }));
 
           if (suggestionRows.length > 0) {
-            await supabaseAdmin.from("content_suggestions")
+            await (supabaseAdmin as any).from("content_suggestions")
               .insert(suggestionRows);
           }
         } catch (dbErr: any) {

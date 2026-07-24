@@ -29,7 +29,7 @@ export function AeoAuditRunner({ projectId, websiteUrl = "", onAuditComplete }: 
     setLoading(true);
     setReport(null);
     try {
-      const data = await runAeoAudit({ url, projectId, maxPages });
+      const data = await runAeoAudit({ data: { url, projectId, maxPages } });
       setReport(data);
       toast.success("AEO Audit completed successfully!");
       if (onAuditComplete) onAuditComplete();

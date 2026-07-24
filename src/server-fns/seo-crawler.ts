@@ -71,19 +71,19 @@ export const executeSeoAudit = createServerFn({ method: "GET" })
 
     const issues = [];
     if (!metrics.description) {
-      issues.push({ id: 1, type: "error", title: "Missing Meta Description", count: 1, description: "Page is missing a crucial description tag for search indexing." });
+      issues.push({ id: 1, code: "missing_meta_description", type: "error", title: "Missing Meta Description", count: 1, description: "Page is missing a crucial description tag for search indexing." });
     }
     if (metrics.h1s.length === 0) {
-      issues.push({ id: 2, type: "error", title: "Missing H1 Tag", count: 1, description: "No primary heading found on the page." });
+      issues.push({ id: 2, code: "missing_h1", type: "error", title: "Missing H1 Tag", count: 1, description: "No primary heading found on the page." });
     } else if (metrics.h1s.length > 1) {
-      issues.push({ id: 3, type: "warning", title: "Duplicate H1 Tags", count: metrics.h1s.length, description: "Page has more than one primary heading." });
+      issues.push({ id: 3, code: "duplicate_h1", type: "warning", title: "Duplicate H1 Tags", count: metrics.h1s.length, description: "Page has more than one primary heading." });
     }
 
     if (metrics.totalLinks > 0) {
-      issues.push({ id: 4, type: "warning", title: "Broken Links (404)", count: Math.min(3, Math.floor(metrics.totalLinks / 10)), description: "Links pointing to pages that might not exist." });
+      issues.push({ id: 4, code: "broken_links", type: "warning", title: "Broken Links (404)", count: Math.min(3, Math.floor(metrics.totalLinks / 10)), description: "Links pointing to pages that might not exist." });
     }
 
-    issues.push({ id: 5, type: "success", title: "Sitemap Checked", count: 1, description: "Mock check: XML sitemap is present and correctly formatted." });
+    issues.push({ id: 5, code: "sitemap_checked", type: "success", title: "Sitemap Checked", count: 1, description: "Mock check: XML sitemap is present and correctly formatted." });
 
     const errorCount = issues.filter(i => i.type === "error").length;
     const warningCount = issues.filter(i => i.type === "warning").length;

@@ -32,7 +32,7 @@ export function KeywordExplorer({ projectId, onKeywordsSaved }: KeywordExplorerP
     setKeywords([]);
     setSelectedKws(new Set());
     try {
-      const res = await exploreKeywords({ seeds, projectId, depth });
+      const res = await exploreKeywords({ data: { seeds, projectId, depth } });
       if (res.success) {
         setKeywords(res.keywords);
         toast.success(`Found ${res.keywords.length} keyword variations!`);
@@ -69,8 +69,10 @@ export function KeywordExplorer({ projectId, onKeywordsSaved }: KeywordExplorerP
     setSaving(true);
     try {
       const res = await saveKeywordsAsPrompts({
-        keywords: Array.from(selectedKws),
-        projectId
+        data: {
+          keywords: Array.from(selectedKws),
+          projectId
+        }
       });
       if (res.success) {
         toast.success(`Successfully saved ${selectedKws.size} keywords to project prompts!`);

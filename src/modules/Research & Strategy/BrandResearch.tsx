@@ -28,7 +28,7 @@ export function BrandResearch({ projectId, websiteUrl = "", onGenerationComplete
     setLoading(true);
     setDna(null);
     try {
-      const res = await extractBrandDna({ url, projectId });
+      const res = await extractBrandDna({ data: { url, projectId } });
       if (res.success) {
         setDna(res.insight);
         toast.success("Brand DNA extracted and saved to project insights!");
