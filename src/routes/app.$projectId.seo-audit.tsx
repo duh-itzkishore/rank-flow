@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, XCircle, AlertTriangle, ExternalLink, RefreshCw, Loader2, ShieldCheck, FileCode, Copy, CheckCheck, Cpu } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, ExternalLink, RefreshCw, Loader2, ShieldCheck, FileCode, Copy, CheckCheck, Cpu, Sparkles, X } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, Cell } from "recharts";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,48 @@ function SEOAudit() {
   const [copied, setCopied] = useState(false);
   const [geoSaved, setGeoSaved] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
+
+  // GEO Writer Fix-it Modal state
+  const [fixModalOpen, setFixModalOpen] = useState(false);
+  const [generatingFix, setGeneratingFix] = useState(false);
+  const [activeFixData, setActiveFixData] = useState<{ title: string; snippet: string; instructions: string } | null>(null);
+  const [fixCopied, setFixCopied] = useState(false);
+
+  const handleGenerateFix = async (issue: any) => {
+    setFixModalOpen(true);
+    setGeneratingFix(true);
+    setActiveFixData(null);
+
+    const proj = projects.find((p) => p.id === selectedProjectId);
+    try {
+      const res = await fetch("/api/generate-fixit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          issueCode: issue.code || "general",
+          url: website || "https://example.com",
+          title: issue.title,
+          description: issue.description,
+          brandName: proj?.brand || "Brand"
+        })
+      });
+
+      const resData = await res.json();
+      if (resData.success) {
+        setActiveFixData({
+          title: resData.snippetTitle,
+          snippet: resData.snippetCode,
+          instructions: resData.instructions
+        });
+      } else {
+        toast.error(resData.error || "Failed to generate fix");
+      }
+    } catch (err: any) {
+      toast.error(String(err));
+    } finally {
+      setGeneratingFix(false);
+    }
+  };
 
   useEffect(() => {
     if (website) runAudit(website);
@@ -323,8 +365,12 @@ function SEOAudit() {
                         </div>
                         <p className="text-sm text-white/50 mt-1">{issue.description}</p>
                       </div>
-                      <button className="text-indigo-400 hover:text-indigo-300 p-2 shrink-0">
-                        <ExternalLink className="w-4 h-4" />
+                      <button
+                        onClick={() => handleGenerateFix(issue)}
+                        className="flex items-center gap-1.5 rounded-lg bg-indigo-600/20 border border-indigo-500/30 px-3 py-1.5 text-xs font-semibold text-indigo-300 hover:bg-indigo-600 hover:text-white transition-colors shrink-0"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Fix with AI
                       </button>
                     </div>
                   ))
@@ -449,6 +495,58 @@ function SEOAudit() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── GEO Writer Fix Modal ── */}
+      {fixModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-2xl rounded-2xl bg-[#141416] border border-white/10 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-base font-semibold text-white">
+                  {activeFixData?.title || "GEO Writer · Generating Fix..."}
+                </h3>
+              </div>
+              <button
+                onClick={() => setFixModalOpen(false)}
+                className="text-white/40 hover:text-white p-1 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {generatingFix ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3 text-white/50">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                <p className="text-sm">Analyzing issue & generating custom AI fix...</p>
+              </div>
+            ) : activeFixData ? (
+              <div className="space-y-4">
+                <p className="text-xs text-white/60">{activeFixData.instructions}</p>
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(activeFixData.snippet);
+                      setFixCopied(true);
+                      setTimeout(() => setFixCopied(false), 2000);
+                      toast.success("Snippet copied to clipboard!");
+                    }}
+                    className="absolute top-3 right-3 flex items-center gap-1 text-xs text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-lg hover:bg-indigo-500/20 transition-colors"
+                  >
+                    {fixCopied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {fixCopied ? "Copied!" : "Copy Snippet"}
+                  </button>
+                  <pre className="bg-black/60 rounded-xl border border-white/10 p-4 text-xs font-mono text-white/80 leading-relaxed overflow-auto max-h-96 whitespace-pre-wrap">
+                    {activeFixData.snippet}
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <div className="text-red-400 text-sm py-4">Failed to generate fix. Please try again.</div>
+            )}
           </div>
         </div>
       )}

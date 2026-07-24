@@ -25,8 +25,10 @@ import { Route as AppAlertsRouteImport } from './routes/app.alerts'
 import { Route as ApiSeoAuditRouteImport } from './routes/api.seo-audit'
 import { Route as ApiRunScheduledPromptsRouteImport } from './routes/api.run-scheduled-prompts'
 import { Route as ApiPromptAuditRouteImport } from './routes/api.prompt-audit'
+import { Route as ApiProcessJobsRouteImport } from './routes/api.process-jobs'
 import { Route as ApiGeneratePromptsRouteImport } from './routes/api.generate-prompts'
 import { Route as ApiGenerateInsightsRouteImport } from './routes/api.generate-insights'
+import { Route as ApiGenerateFixitRouteImport } from './routes/api.generate-fixit'
 import { Route as AppProjectIdIndexRouteImport } from './routes/app.$projectId.index'
 import { Route as AppProjectIdSeoAuditRouteImport } from './routes/app.$projectId.seo-audit'
 import { Route as AppProjectIdResponsesRouteImport } from './routes/app.$projectId.responses'
@@ -128,6 +130,11 @@ const ApiPromptAuditRoute = ApiPromptAuditRouteImport.update({
   path: '/api/prompt-audit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiProcessJobsRoute = ApiProcessJobsRouteImport.update({
+  id: '/api/process-jobs',
+  path: '/api/process-jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGeneratePromptsRoute = ApiGeneratePromptsRouteImport.update({
   id: '/api/generate-prompts',
   path: '/api/generate-prompts',
@@ -136,6 +143,11 @@ const ApiGeneratePromptsRoute = ApiGeneratePromptsRouteImport.update({
 const ApiGenerateInsightsRoute = ApiGenerateInsightsRouteImport.update({
   id: '/api/generate-insights',
   path: '/api/generate-insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGenerateFixitRoute = ApiGenerateFixitRouteImport.update({
+  id: '/api/generate-fixit',
+  path: '/api/generate-fixit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppProjectIdIndexRoute = AppProjectIdIndexRouteImport.update({
@@ -250,8 +262,10 @@ export interface FileRoutesByFullPath {
   '/analysis': typeof AnalysisRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/api/generate-fixit': typeof ApiGenerateFixitRoute
   '/api/generate-insights': typeof ApiGenerateInsightsRoute
   '/api/generate-prompts': typeof ApiGeneratePromptsRoute
+  '/api/process-jobs': typeof ApiProcessJobsRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
@@ -289,8 +303,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisRoute
   '/auth': typeof AuthRoute
+  '/api/generate-fixit': typeof ApiGenerateFixitRoute
   '/api/generate-insights': typeof ApiGenerateInsightsRoute
   '/api/generate-prompts': typeof ApiGeneratePromptsRoute
+  '/api/process-jobs': typeof ApiProcessJobsRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
@@ -330,8 +346,10 @@ export interface FileRoutesById {
   '/analysis': typeof AnalysisRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/api/generate-fixit': typeof ApiGenerateFixitRoute
   '/api/generate-insights': typeof ApiGenerateInsightsRoute
   '/api/generate-prompts': typeof ApiGeneratePromptsRoute
+  '/api/process-jobs': typeof ApiProcessJobsRoute
   '/api/prompt-audit': typeof ApiPromptAuditRoute
   '/api/run-scheduled-prompts': typeof ApiRunScheduledPromptsRoute
   '/api/seo-audit': typeof ApiSeoAuditRoute
@@ -372,8 +390,10 @@ export interface FileRouteTypes {
     | '/analysis'
     | '/app'
     | '/auth'
+    | '/api/generate-fixit'
     | '/api/generate-insights'
     | '/api/generate-prompts'
+    | '/api/process-jobs'
     | '/api/prompt-audit'
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
@@ -411,8 +431,10 @@ export interface FileRouteTypes {
     | '/'
     | '/analysis'
     | '/auth'
+    | '/api/generate-fixit'
     | '/api/generate-insights'
     | '/api/generate-prompts'
+    | '/api/process-jobs'
     | '/api/prompt-audit'
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
@@ -451,8 +473,10 @@ export interface FileRouteTypes {
     | '/analysis'
     | '/app'
     | '/auth'
+    | '/api/generate-fixit'
     | '/api/generate-insights'
     | '/api/generate-prompts'
+    | '/api/process-jobs'
     | '/api/prompt-audit'
     | '/api/run-scheduled-prompts'
     | '/api/seo-audit'
@@ -492,8 +516,10 @@ export interface RootRouteChildren {
   AnalysisRoute: typeof AnalysisRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiGenerateFixitRoute: typeof ApiGenerateFixitRoute
   ApiGenerateInsightsRoute: typeof ApiGenerateInsightsRoute
   ApiGeneratePromptsRoute: typeof ApiGeneratePromptsRoute
+  ApiProcessJobsRoute: typeof ApiProcessJobsRoute
   ApiPromptAuditRoute: typeof ApiPromptAuditRoute
   ApiRunScheduledPromptsRoute: typeof ApiRunScheduledPromptsRoute
   ApiSeoAuditRoute: typeof ApiSeoAuditRoute
@@ -614,6 +640,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPromptAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/process-jobs': {
+      id: '/api/process-jobs'
+      path: '/api/process-jobs'
+      fullPath: '/api/process-jobs'
+      preLoaderRoute: typeof ApiProcessJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/generate-prompts': {
       id: '/api/generate-prompts'
       path: '/api/generate-prompts'
@@ -626,6 +659,13 @@ declare module '@tanstack/react-router' {
       path: '/api/generate-insights'
       fullPath: '/api/generate-insights'
       preLoaderRoute: typeof ApiGenerateInsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/generate-fixit': {
+      id: '/api/generate-fixit'
+      path: '/api/generate-fixit'
+      fullPath: '/api/generate-fixit'
+      preLoaderRoute: typeof ApiGenerateFixitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/$projectId/': {
@@ -849,8 +889,10 @@ const rootRouteChildren: RootRouteChildren = {
   AnalysisRoute: AnalysisRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiGenerateFixitRoute: ApiGenerateFixitRoute,
   ApiGenerateInsightsRoute: ApiGenerateInsightsRoute,
   ApiGeneratePromptsRoute: ApiGeneratePromptsRoute,
+  ApiProcessJobsRoute: ApiProcessJobsRoute,
   ApiPromptAuditRoute: ApiPromptAuditRoute,
   ApiRunScheduledPromptsRoute: ApiRunScheduledPromptsRoute,
   ApiSeoAuditRoute: ApiSeoAuditRoute,

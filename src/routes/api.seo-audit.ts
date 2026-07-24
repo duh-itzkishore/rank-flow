@@ -197,13 +197,13 @@ export const Route = createFileRoute("/api/seo-audit")({
             : 0;
 
           // Build SEO issues list
-          const issues: Array<{ id: number; type: string; title: string; count: number; description: string }> = [];
+          const issues: Array<{ id: number; code: string; type: string; title: string; count: number; description: string }> = [];
 
-          if (!metrics.description) issues.push({ id: 1, type: "error", title: "Missing Meta Description", count: 1, description: "No <meta name='description'> tag found. Required for AI search snippets." });
-          if (!metrics.title) issues.push({ id: 2, type: "error", title: "Missing Page Title", count: 1, description: "No <title> tag found. Critical for both traditional and AI search." });
-          if (metrics.h1s.length === 0) issues.push({ id: 3, type: "error", title: "Missing H1 Tag", count: 1, description: "No primary heading found. AI crawlers rely on H1 to understand page topic." });
-          if (metrics.schemas.length === 0 && schemaTypes.length === 0) issues.push({ id: 6, type: "warning", title: "No Structured Data (Schema)", count: 1, description: "No JSON-LD schema found. Schema markup significantly improves AEO/GEO visibility." });
-          if (llmsTxtStatus === "Not found") issues.push({ id: 7, type: "warning", title: "Missing llms.txt", count: 1, description: "No llms.txt found. Consider adding one to feed AI bots structured markdown." });
+          if (!metrics.description) issues.push({ id: 1, code: "missing_meta_description", type: "error", title: "Missing Meta Description", count: 1, description: "No <meta name='description'> tag found. Required for AI search snippets." });
+          if (!metrics.title) issues.push({ id: 2, code: "missing_page_title", type: "error", title: "Missing Page Title", count: 1, description: "No <title> tag found. Critical for both traditional and AI search." });
+          if (metrics.h1s.length === 0) issues.push({ id: 3, code: "missing_h1", type: "error", title: "Missing H1 Tag", count: 1, description: "No primary heading found. AI crawlers rely on H1 to understand page topic." });
+          if (metrics.schemas.length === 0 && schemaTypes.length === 0) issues.push({ id: 6, code: "missing_schema", type: "warning", title: "No Structured Data (Schema)", count: 1, description: "No JSON-LD schema found. Schema markup significantly improves AEO/GEO visibility." });
+          if (llmsTxtStatus === "Not found") issues.push({ id: 7, code: "missing_llms_txt", type: "warning", title: "Missing llms.txt", count: 1, description: "No llms.txt found. Consider adding one to feed AI bots structured markdown." });
 
           const errorCount = issues.filter((i) => i.type === "error").length;
           const warningCount = issues.filter((i) => i.type === "warning").length;
